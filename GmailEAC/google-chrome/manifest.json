@@ -1,14 +1,24 @@
 {
     "manifest_version"  : 2,
-    "name"              : "Gmail EAC Plugin",
-    "version"           : "0.1",
+    "name"              : "EAC Plugin",
+    
+    "version"           : "0.1.1",
+    "version_name"      : "0.1.1 alpha",
+
+    "description"       : "The EAC Plugin enable your browser to support the technology Email Active Content developped by AppInMail in various WebMail client.",
+    
+    "icons": {
+        "16"  : "icons/logo_16.png",
+        "48"  : "icons/logo_48.png",
+        "128" : "icons/logo_128.png"
+    },
+
     "permissions"       : [
-        "tabs",
-        "notifications",
         "*://mail.google.com/*",
         "webRequest",
         "webRequestBlocking"
     ],
+
 
     "background": {
         "scripts"       : [ "background.js" ]
@@ -27,5 +37,5 @@
         "matches": [ "*://mail.google.com/*" ]
     },
 
-    "web_accessible_resources"  : [ "injection.js" ]
+    "web_accessible_resources"  : [ "injection.js", "icons/logo_16.png" ]
 }

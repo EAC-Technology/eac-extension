@@ -22,7 +22,7 @@ __.$contains = function __$contains(selector1, selector2, elem) {
 
 __.logger = function(level, args) {
     var args = Array.prototype.slice.call(args);
-    args.unshift('--- [Gmail EAC Plugin] -');
+    args.unshift('--- [EAC Plugin] -');
     level.apply(console, args);
 }
 
@@ -31,21 +31,15 @@ __.info = function __debug() {
 }
 
 __.debug = function() {
-    __.logger(console.warn, arguments);
+    Appinmail 
+        && Appinmail.debug
+        && __.logger(console.warn, arguments);
 }
 
 __.error = function() {
     __.logger(console.error, arguments);
 }
 
-
-
-
-// VT.runtimeSendMessage = chrome.runtime && chrome.runtime.sendMessage ? chrome.runtime.sendMessage : chrome.extension.sendRequest;
-
-// VT.sendMessage = function(data, sendResponse) {
-    // VT.runtimeSendMessage('cejbhhnockfoghpphcdklbidfceeiehk', data, sendResponse);
-// }
 
 
 
@@ -182,7 +176,8 @@ Gmail.originalMessageId = function() {
 Gmail.messageUrl = function() {
     var id = this.originalMessageId();
     if (!id) return '';
-    return this.absUrl(`?ui=2&view=om&ik=${this.userToken()}&th=${id}`)
+    // return this.absUrl(`?ui=2&view=om&ik=${this.userToken()}&th=${id}`);
+    return this.absUrl(`?view=att&th=${id}&attid=0&disp=comp&safe=1&zw`);
 }
 
 Gmail.getMessageContent = function(callback) {
@@ -214,7 +209,15 @@ Gmail.insertEacViewer = function(url) {
 
     var eacviewer = document.createElement('div');
     eacviewer.id = 'appinmail-eac-viewer';
-    eacviewer.innerHTML = `<iframe width=100% height=600px src="${url}"></iframe>`;
+    eacviewer.innerHTML = `
+        <div style="font-size: 10pt">
+            <a href="http://appinmail.io/" target="_blank" style="text-decoration: none">
+                <img src="${Appinmail.logoUrl}" alt="Appinmail"/>
+                <span style="vertical-align: super; color: #9ca0a7;">Powered by EAC tehnology</span>
+            </a>
+        </div>
+        <iframe width=100% height=800px frameBorder="0px" src="${url}"></iframe>
+    `;
 
     gmailContent.parentElement.insertBefore(eacviewer, gmailContent);
     return gmailContent;
@@ -261,7 +264,7 @@ Gmail.onHashChanged = function() {
                 return;
             }
 
-            __.info('EAC content detected !!!!!!!!!!!!!!!!!!!!!!!!!');
+            __.info('EAC content detected!');
 
             var url = EAC.parseEacviewerUrl(resp);
             __.debug('EAC Viewer URL:', url);
@@ -313,21 +316,23 @@ EAC.parseEacXml = function(content) {
 
 EAC.parseEacviewerUrl = function(content) {
     // RFC 1341 (MIME)
-    var text = content.replace(/=(?:\r\n|\n\r)/g, '').replace(/=([0-9A-F]{2})/g, function(x, p) {
-        return String.fromCharCode(parseInt(p, 16));
-    });
+    // var text = content.replace(/=(?:\r\n|\n\r)/g, '').replace(/=([0-9A-F]{2})/g, function(x, p) {
+        // return String.fromCharCode(parseInt(p, 16));
+    // });
 
+    var text = content
+;
     // RFC 3986 (URL)
     var unreserved  = `a-zA-Z0-9-._~`;
     var sub_delims  = `!\$&'()*+,;=`;
     var pchar = `${unreserved}%${sub_delims}:@`;
     var query = `${pchar}\\/\\?`;
 
-    // var link = `(https?:\\/\\/promail-pis\\d+\\.appinmail\\.[a-zA-Z]+\\/eacviewer\\?[${query}]+)`;
     var link = `(https?:\\/\\/a[a-z]+\\.appinmail\\.io\\/u[rl]{0,2}\\?k[ey]{0,2}\\=[${query}]+)`;
     var linkRe = RegExp(link, 'gi');
-    
+        
     var m = text.match(linkRe);
+
     return m ? m[0] : '';
 }
 
@@ -383,7 +388,7 @@ EAC.generateUrl = function(xml) {
     var host = api['server'];
 
     var query = {
-        'eac_token'         : '123',
+        'eac_token'         : '',
         'session_token'     : '',
 
         'server'            : attr(api, 'server'),
@@ -417,96 +422,5 @@ EAC.generateUrl = function(xml) {
 
 
 
-// (function(content) {
-//     // RFC 1341 (MIME)
-//     var text = content.replace(/=(?:\r\n|\n\r)/g, '').replace(/=([0-9A-F]{2})/g, function(x, p) {
-//         return String.fromCharCode(parseInt(p, 16));
-//     });
-
-//     // RFC 3986 (URL)
-//     var unreserved  = `a-zA-Z0-9-._~`;
-//     var sub_delims  = `!\$&'()*+,;=`;
-//     var pchar = `${unreserved}%${sub_delims}:@`;
-//     var query = `${pchar}\\/\\?`;
-
-//     var link = `(https?:\\/\\/promail-pis\\d+\\.appinmail\\.[a-zA-Z]+\\/eacviewer\\?[${query}]+)`;
-//     var linkRe = RegExp(link, 'gi');
-    
-//     var m = text.match(linkRe); 
-//     return m ? m[1] : '';
-
-// })(s)
-
-
-
-
-
-
-
-
-
-
-
-// def get_eacviewer_url(self, host, email):
-//         param = urllib.urlencode({
-//             'eac_token': self.eac_token,
-//             'session_token': self.session_token,
-//             'pattern': self.get_data
-//         })
-
-//         protocol = 'http'
-//         if '://' in host:
-//             protocol, host = host.split('://', 1)
-
-//         return urlparse.urlunparse((protocol, host, '/eacviewer', '', param, ''))
-
-
-
-
-
-
-
-
-
-// (function() {
-//     var url = "https://mail.google.com/mail/u/0/?ui=2&view=om&ik=e9a80ab15e&th=154dc9e911ec7ac4&_r=" + Math.random();
-//     console.log(url);
-
-//     var xhr = new XMLHttpRequest();
-//     xhr.open('GET', url, true);
-
-//     // xhr.onreadystatechange = function(e) {
-//     //     if (xhr.readyStatus != 4) return;
-//     //     console.log(xhr.response);
-//     //     // console.log('---------------------------------------------------');
-//     //     // console.log(e.target.responseText);
-//     //     // console.log(xhr.responseText);
-//     //     // xhr.abort()
-
-//     // }
-
-//     // xhr.onerror = function() {
-//     //     console.log('error')
-//     // }
-
-//     xhr.onload = function() {
-//         console.log(xhr.response)
-//     }
-
-//     xhr.send();
-
-// })()
-
-
-
-// XMLHttpRequest.prototype.__tmp_open = XMLHttpRequest.prototype.open;
-
-// XMLHttpRequest.prototype.open = function() {
-//     console.log('XHR open', this);
-//     XMLHttpRequest.prototype.__tmp_open.apply(this, arguments);
-// }
-
-
-// https://mail.google.com/mail/u/0/?ui=2&ik=e9a80ab15e&view=tl&start=0&num=1&rt=c&search=inbox
 
 __.info('injection - ok');
