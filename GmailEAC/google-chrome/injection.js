@@ -332,8 +332,19 @@ EAC.parseEacviewerUrl = function(content) {
     var linkRe = RegExp(link, 'gi');
         
     var m = text.match(linkRe);
+    if (!m) return '';
 
-    return m ? m[0] : '';
+    var url = m[0];
+
+    // check url
+    var parts = url.split('=');
+    var key = (parts.length > 1) ? parts[1] : null;
+    if (!key) return url;
+
+    if (key.startsWith('3D') && key.length == 9)
+        return [parts[0], key.slice(2)].join('=');
+
+    return url;
 }
 
 
