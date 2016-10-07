@@ -2,8 +2,8 @@
     "manifest_version"  : 2,
     "name"              : "EAC Plugin",
     
-    "version"           : "0.1.1",
-    "version_name"      : "0.1.1 alpha",
+    "version"           : "0.1.2",
+    "version_name"      : "0.1.2 alpha",
 
     "description"       : "The EAC Plugin enable your browser to support the technology Email Active Content developped by AppInMail in various WebMail client.",
     
