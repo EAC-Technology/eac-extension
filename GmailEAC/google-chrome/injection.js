@@ -90,13 +90,19 @@ Gmail.updateFeed = function() {
     __.debug('Update Gmail Feed');
 
     var d = this.currentDirectory();
+    if (d[0] == 'imp') d = ['is', 'important'];
+    if (/p\d+/.test(d.slice(-1)[0])) d = d.slice(0, -1); 
+    if (d.length < 2) d.unshift('in');
+    if (d[0] == 'search') d.shift();
+
+    var q = d.join('%3A');
     
     if (!this.feeds.hasOwnProperty(d))
         this.feeds[d] = {};
 
     var start = (this.currentPage()-1) * this.messagesPerPage();
-    var query = `?ui=2&ik=${this.userToken()}&view=tl&start=${start}&num=${this.messagesPerPage()}&rt=j&search=${d}`
-
+    var query = `?ui=2&ik=${this.userToken()}&at=${this.actionToken()}&view=tl&start=${start}&num=${this.messagesPerPage()}&rt=j&search=query&q=${q}`
+    
     var url = this.absUrl(query);
     
     this.get(url, function(resp) {
@@ -109,6 +115,9 @@ Gmail.updateFeed = function() {
 }
 
 
+Gmail.actionToken = function() {
+    return GM_ACTION_TOKEN;
+}
 
 Gmail.userEmail = function() {
     return GLOBALS[10];
@@ -123,7 +132,7 @@ Gmail.userUrl = function() {
 }
 
 Gmail.absUrl = function(query) {
-    return `${this.userUrl()}${query}`
+    return `${this.userUrl()}${query}`;
 }
 
 Gmail.messagesPerPage = function() {
@@ -134,7 +143,7 @@ Gmail.messagesPerPage = function() {
 
 
 Gmail.currentDirectory = function() {
-    var parts = window.location.hash.split('/');
+    return window.location.hash.slice(1).split('/');
     if (parts.length == 1) return parts[0].slice(1);
     return parts.slice(0, -1).join('/').slice(1);
 }
@@ -176,16 +185,35 @@ Gmail.originalMessageId = function() {
 Gmail.messageUrl = function() {
     var id = this.originalMessageId();
     if (!id) return '';
-    // return this.absUrl(`?ui=2&view=om&ik=${this.userToken()}&th=${id}`);
-    return this.absUrl(`?view=att&th=${id}&attid=0&disp=comp&safe=1&zw`);
+    return this.absUrl(`?ui=2&view=om&ik=${this.userToken()}&th=${id}`);
+    // return this.absUrl(`?view=att&th=${id}&attid=0&disp=comp&safe=1&zw`);
 }
 
 Gmail.getMessageContent = function(callback) {
     var url = this.messageUrl();
     __.debug('Get Message Content', this.messageId(), url, 'start');
 
+    var CONTENT_START = '<pre class="raw_message_text" id="raw_message_text">';
+    var REPLACEMENTS = {
+        '&amp;'     :   '&',
+        '&gt;'      :   '>',
+        '&lt;'      :   '<',
+        '&quot;'    :   '"',
+        '&#39;'     :   "'"
+    };
+
     if (!url) return callback('');
-    this.get(url, callback);
+    this.get(url, function(content) {
+        var i = content.indexOf(CONTENT_START) + CONTENT_START.length;
+        var j = content.indexOf('</pre>', i);
+        content = content.slice(i, j);
+
+        content = content.replace(/(&amp;|&gt;|&lt;|&quot;|&#39;)/gi, function(x) {
+            return REPLACEMENTS[x];
+        });
+
+        callback(content);
+    });
 }
 
 Gmail.isEacViewerInserted = function() {
@@ -427,8 +455,6 @@ EAC.generateUrl = function(xml) {
     query = args.join('&');
 
     var url = `${eacviewerUrl}?${query}`;
-
-    console.log(url)
 }
 
 
