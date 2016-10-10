@@ -241,7 +241,7 @@ Gmail.insertEacViewer = function(url) {
         <div style="font-size: 10pt">
             <a href="http://appinmail.io/" target="_blank" style="text-decoration: none">
                 <img src="${Appinmail.logoUrl}" alt="Appinmail"/>
-                <span style="vertical-align: super; color: #9ca0a7;">Powered by EAC tehnology</span>
+                <span style="vertical-align: super; color: #9ca0a7;">Powered by EAC technology</span>
             </a>
         </div>
         <iframe width=100% height=800px frameBorder="0px" src="${url}"></iframe>
