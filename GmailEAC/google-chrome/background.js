@@ -1,3 +1,6 @@
+console.info('background.js imported');
+
+
 function fix_csp_response_headers(details, key, value) {
     
     for (var i = 0; i < details.responseHeaders.length; i++) {
@@ -17,7 +20,9 @@ function fix_csp_response_headers(details, key, value) {
 chrome.webRequest.onHeadersReceived.addListener(
 	function(details) {
 		var url = details.url.toLowerCase();
-		return fix_csp_response_headers(details, 'frame-src', '*.appinmail.io');
+        fix_csp_response_headers(details, 'frame-src', '*.appinmail.io');
+
+        return {responseHeaders: details.responseHeaders}
 	}, 
 	
 	{
@@ -28,3 +33,6 @@ chrome.webRequest.onHeadersReceived.addListener(
 	['blocking', 'responseHeaders']
 );
 
+
+// set badge to icon
+// chrome.browserAction.setBadgeText({text: '3'})

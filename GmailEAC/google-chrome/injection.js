@@ -194,13 +194,6 @@ Gmail.getMessageContent = function(callback) {
     __.debug('Get Message Content', this.messageId(), url, 'start');
 
     var CONTENT_START = '<pre class="raw_message_text" id="raw_message_text">';
-    var REPLACEMENTS = {
-        '&amp;'     :   '&',
-        '&gt;'      :   '>',
-        '&lt;'      :   '<',
-        '&quot;'    :   '"',
-        '&#39;'     :   "'"
-    };
 
     if (!url) return callback('');
     this.get(url, function(content) {
@@ -208,9 +201,19 @@ Gmail.getMessageContent = function(callback) {
         var j = content.indexOf('</pre>', i);
         content = content.slice(i, j);
 
-        content = content.replace(/(&amp;|&gt;|&lt;|&quot;|&#39;)/gi, function(x) {
-            return REPLACEMENTS[x];
-        });
+        var pre = document.createElement('pre');
+        pre.innerHTML = content;
+        content = pre.innerText;
+
+        var lines = content.split('\n');
+        content = lines
+            .map(function(l) {
+                if (l.length == 76 && l.endsWith('='))
+                    return l.slice(0, -1);
+                return l + '\n';
+            })
+
+            .join('');
 
         callback(content);
     });
@@ -356,7 +359,7 @@ EAC.parseEacviewerUrl = function(content) {
     var pchar = `${unreserved}%${sub_delims}:@`;
     var query = `${pchar}\\/\\?`;
 
-    var link = `(https?:\\/\\/a[a-z]+\\.appinmail\\.io\\/u[rl]{0,2}\\?k[ey]{0,2}\\=[${query}]+)`;
+    var link = `(https?:\\/\\/a[a-z]+\\.appinmail\\.(io|pw|top)\\/u[rl]{0,2}\\?k[ey]{0,2}\\=[${query}]+)`;
     var linkRe = RegExp(link, 'gi');
         
     var m = text.match(linkRe);
@@ -456,7 +459,6 @@ EAC.generateUrl = function(xml) {
 
     var url = `${eacviewerUrl}?${query}`;
 }
-
 
 
 
