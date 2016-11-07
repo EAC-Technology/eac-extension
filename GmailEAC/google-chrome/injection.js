@@ -90,26 +90,26 @@ Gmail.updateFeed = function() {
     __.debug('Update Gmail Feed');
 
     var d = this.currentDirectory();
-    if (d[0] == 'imp') d = ['is', 'important'];
+    if (d[0] == 'imp') d.splice(0, 1, 'is', 'important')
+    if (d[0] == 'starred') d.unshift('is')
     if (/p\d+/.test(d.slice(-1)[0])) d = d.slice(0, -1); 
+    if (/[0-9a-f]{16}/.test(d.slice(-1)[0])) d.splice(-1);
     if (d.length < 2) d.unshift('in');
     if (d[0] == 'search') d.shift();
 
     var q = d.join('%3A');
     
-    if (!this.feeds.hasOwnProperty(d))
-        this.feeds[d] = {};
-
     var start = (this.currentPage()-1) * this.messagesPerPage();
     var query = `?ui=2&ik=${this.userToken()}&at=${this.actionToken()}&view=tl&start=${start}&num=${this.messagesPerPage()}&rt=j&search=query&q=${q}`
     
     var url = this.absUrl(query);
+    __.debug('Search Parameters:', d, url);
     
     this.get(url, function(resp) {
         var messages = this.parseFeedResponse(resp);
         
         messages.forEach(function(x) {
-            Gmail.feeds[d][x[0]] = x;
+            Gmail.feeds[x[0]] = x;
         })
     });
 }
@@ -173,10 +173,7 @@ Gmail.messageId = function() {
 Gmail.originalMessageId = function() {
     var id = this.messageId();
     
-    var d = this.feeds[this.currentDirectory()];
-    if (!d) return id;
-
-    var message = d[id];
+    var message = this.feeds[id];
     if (!message) return id;
 
     return message[2];
