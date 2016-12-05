@@ -100,6 +100,11 @@ Extension.sendMessage = function(message) {
 }
 
 
+// Extension.onMessage = function() {
+
+// }
+
+
 
 Extension.setBadgeText = function(text) {
     return Extension.sendMessage({action : 'setBadgeText', value : text});
@@ -107,6 +112,10 @@ Extension.setBadgeText = function(text) {
 
 Extension.setUnreadCountBadge = function(value) {
     return Extension.sendMessage({action : 'setUnreadCountBadge', value : value});
+}
+
+Extension.getOptions = function() {
+    return Extension.sendMessage({action : 'getExtensionOptions'});
 }
 
 

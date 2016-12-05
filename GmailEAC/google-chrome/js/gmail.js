@@ -68,37 +68,6 @@ var Gmail = (function() {
             get : ajax_call.bind(null, ajax.get),
             post : ajax_call.bind(null, ajax.post)
         }
-
-
-        this.fetchThreads = function(params, offset, limit) {
-            offset = offset || 0;
-            limit = limit || 20;
-
-            var url = `?ui=2&view=tl&start=${offset}&num=${limit}&rt=j`;
-            
-            return this.ajax.get(url, params)
-                .then(function(resp) {
-                    var data = JSON.parse(resp.slice(5));
-                
-                    data = data[0].filter(function(x) {
-                        return x[0] == 'tb';
-                    });
-
-                    var threads = data.reduce(function(arr, x) {
-                        return arr.concat(x[2]);
-                    }, []);
-
-                    return threads;
-                })
-
-                .then(function(threads) {
-                    threads = threads.map(Gmail.Message.parse);
-                    __.debug('Gmail Feed Threads:\n', threads);
-                    return threads;
-                });
-        }
-
-
     };
 
 
@@ -258,36 +227,53 @@ var Gmail = (function() {
 
 
 
+    Gmail.apiInstance = null;
+    
+    Gmail.setAccount = function(details) {
+        Gmail.apiInstance = new GmailAPI(details);
+    }    
+    
+    Gmail.api = function() {
+        if (Gmail.apiInstance == null)
+            Gmail.apiInstance = new GmailAPI(Gmail.Account.current());
+        return Gmail.apiInstance;
+    }
+
+
+
+
     Gmail.threads = {};
 
 
 
     Gmail.fetchThreads = function(params, offset, limit) {
-        offset = offset || 0;
-        limit = limit || 20;
+        return Gmail.api().threads.list(params, offset, limit);
 
-        var url = Gmail.absUrl(`?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=tl&start=${offset}&num=${limit}&rt=j`);
+        // offset = offset || 0;
+        // limit = limit || 20;
+
+        // var url = Gmail.absUrl(`?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=tl&start=${offset}&num=${limit}&rt=j`);
         
-        return ajax.get(url, params)
-            .then(function(resp) {
-                var data = JSON.parse(resp.slice(5));
+        // return ajax.get(url, params)
+        //     .then(function(resp) {
+        //         var data = JSON.parse(resp.slice(5));
             
-                data = data[0].filter(function(x) {
-                    return x[0] == 'tb';
-                });
+        //         data = data[0].filter(function(x) {
+        //             return x[0] == 'tb';
+        //         });
 
-                var threads = data.reduce(function(arr, x) {
-                    return arr.concat(x[2]);
-                }, []);
+        //         var threads = data.reduce(function(arr, x) {
+        //             return arr.concat(x[2]);
+        //         }, []);
 
-                return threads;
-            })
+        //         return threads;
+        //     })
 
-            .then(function(threads) {
-                threads = threads.map(Gmail.Message.parse);
-                __.debug('Gmail Feed Threads:\n', threads);
-                return threads;
-            });
+        //     .then(function(threads) {
+        //         threads = threads.map(Gmail.Message.parse);
+        //         __.debug('Gmail Feed Threads:\n', threads);
+        //         return threads;
+        //     });
     }
 
 
@@ -330,58 +316,64 @@ var Gmail = (function() {
 
 
     Gmail.getThreadMessages = function(threadId) {
-        var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&rt=j&view=cv&search=trash&th=${threadId}&type=${threadId}`;
-        var url = Gmail.absUrl(query);
-        
-        return ajax.get(url)
-            
-            .then(function(resp) {
-                var data = JSON.parse(resp.slice(5));
-                
-                return data[0].filter(function(x) {
-                    return x[0] == 'ms';
-                })
-            })
+        return Gmail.api().threads.get(threadId);
 
-            .then(function(rawMessages) {
-                return rawMessages.filter(function(arr) {
-                    return arr[9].indexOf('^k') < 0;
-                });
-            })
+        // var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&rt=j&view=cv&search=trash&th=${threadId}&type=${threadId}`;
+        // var url = Gmail.absUrl(query);
+        
+        // return ajax.get(url)
             
-            .then(function(rawMessages) {
-                return rawMessages
-                    .map(Gmail.Message.parse)
-                    .sort(Utils.cmpByKey('ts'));
-            });
+        //     .then(function(resp) {
+        //         var data = JSON.parse(resp.slice(5));
+                
+        //         return data[0].filter(function(x) {
+        //             return x[0] == 'ms';
+        //         })
+        //     })
+
+        //     .then(function(rawMessages) {
+        //         return rawMessages.filter(function(arr) {
+        //             return arr[9].indexOf('^k') < 0;
+        //         });
+        //     })
+            
+        //     .then(function(rawMessages) {
+        //         return rawMessages
+        //             .map(Gmail.Message.parse)
+        //             .sort(Utils.cmpByKey('ts'));
+        //     });
     }
 
 
 
     Gmail.trashThread = function(threadId) {
-        var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=up&act=tr&rt=j&search=all&t=${threadId}`;
-        var url = Gmail.absUrl(query);
-        return ajax.get(url);
+        return Gmail.api().threads.trash(threadId);
+        // var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=up&act=tr&rt=j&search=all&t=${threadId}`;
+        // var url = Gmail.absUrl(query);
+        // return ajax.get(url);
     }
 
 
     Gmail.untrashThread = function(threadId) {
-        var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=up&act=ib&rt=j&search=trash&t=${threadId}`;
-        var url = Gmail.absUrl(query);
-        return ajax.get(url);
+        return Gmail.api().threads.untrash(threadId);
+        // var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=up&act=ib&rt=j&search=trash&t=${threadId}`;
+        // var url = Gmail.absUrl(query);
+        // return ajax.get(url);
     }
 
     Gmail.trashMessage = function(messageId) {
         __.debug('Trash message', messageId);
-        var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=up&act=dm&rt=j&search=all&m=${messageId}`;
-        var url = Gmail.absUrl(query);
-        return ajax.get(url);
+        return Gmail.api().messages.trash(messageId);
+        // var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=up&act=dm&rt=j&search=all&m=${messageId}`;
+        // var url = Gmail.absUrl(query);
+        // return ajax.get(url);
     }
 
     Gmail.untrashMessage = function(messageId) {
-        var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=up&act=ib&rt=j&search=trash&m=${messageId}`;
-        var url = Gmail.absUrl(query);
-        return ajax.get(url);
+        return Gmail.api().messages.untrash(messageId);
+        // var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=up&act=ib&rt=j&search=trash&m=${messageId}`;
+        // var url = Gmail.absUrl(query);
+        // return ajax.get(url);
     }
 
 
@@ -558,33 +550,36 @@ var Gmail = (function() {
 
 
     Gmail.getMessageSource = function(messageId) {
-        var url = Gmail.messageUrl(messageId);
-        if (!url) return Promise.resolve('');
-
-        var CONTENT_START = '<pre class="raw_message_text" id="raw_message_text">';
+        messageId = messageId || Gmail.originalMessageId();
+        return Gmail.api().messages.get(messageId);
         
-        return ajax.get(url)
-            .then(function(content) {
-                var i = content.indexOf(CONTENT_START) + CONTENT_START.length;
-                var j = content.indexOf('</pre>', i);
-                content = content.slice(i, j);
+        // var url = Gmail.messageUrl(messageId);
+        // if (!url) return Promise.resolve('');
 
-                var pre = document.createElement('pre');
-                pre.innerHTML = content;
-                content = pre.innerText;
+        // var CONTENT_START = '<pre class="raw_message_text" id="raw_message_text">';
+        
+        // return ajax.get(url)
+        //     .then(function(content) {
+        //         var i = content.indexOf(CONTENT_START) + CONTENT_START.length;
+        //         var j = content.indexOf('</pre>', i);
+        //         content = content.slice(i, j);
 
-                var lines = content.split('\n');
-                content = lines
-                    .map(function(l) {
-                        if (l.length == 76 && l.endsWith('='))
-                            return l.slice(0, -1);
-                        return l + '\n';
-                    })
+        //         var pre = document.createElement('pre');
+        //         pre.innerHTML = content;
+        //         content = pre.innerText;
 
-                    .join('');
+        //         var lines = content.split('\n');
+        //         content = lines
+        //             .map(function(l) {
+        //                 if (l.length == 76 && l.endsWith('='))
+        //                     return l.slice(0, -1);
+        //                 return l + '\n';
+        //             })
 
-                return content;
-            });
+        //             .join('');
+
+        //         return content;
+        //     });
     }
 
 
@@ -657,7 +652,6 @@ var Gmail = (function() {
 
     Gmail.fetchNewThreads = function() {
         var lastTs = Gmail.storage.options.lastTs || (new Date(2016, 08, 01)).getTime(); // 2016-09-01
-        // var lastTs = (new Date(2016, 09, 01)).getTime() * 1000; // Google use msecs
 
         var query = {
             search : 'query',

@@ -55,6 +55,7 @@ var Storage = MainDB.SimpleStorage('background_storage', null, function() {});
 Storage.init()
     .then(function() {
         Storage.setDefault(['accounts'], {});
+        Storage.setDefault(['options'], {});
     });
 
 
@@ -115,6 +116,10 @@ Actions.getStats = function(message, sender) {
         .sort(Utils.cmpByKey('url'));
 
     return stats;
+}
+
+Actions.getExtensionOptions = function(message, sender) {
+    return Storage.options;
 }
 
 

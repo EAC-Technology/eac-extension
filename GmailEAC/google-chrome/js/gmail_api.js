@@ -1,5 +1,5 @@
 var GmailAPI = (function() {
-	function API(details) {
+	function GmailAPI(details) {
 		var self = this;
 
         details = details || {};
@@ -13,8 +13,8 @@ var GmailAPI = (function() {
         
         function ajax_call(method, query, data) {
         	data = data || {};
-        	Object.assign(data, this.tokens());
-        	return method(this.absUrl(query), data);
+        	Object.assign(data, self.tokens());
+        	return method(self.absUrl(query), data);
     	}
 
     	this.ajax = {
@@ -24,9 +24,10 @@ var GmailAPI = (function() {
 
 
     	this.threads = {
-    		fetch : function(params, offset, limit) {
-		        offset = offset || 0;
-		        limit = limit || 20;
+    		list : function(params, offset, limit) {
+		        params = params || {search : 'inbox'};
+                offset = offset || 0;
+		        limit  = limit || 20;
 
 		        var url = `?ui=2&view=tl&start=${offset}&num=${limit}&rt=j`;
 		        
@@ -52,24 +53,8 @@ var GmailAPI = (function() {
 		            });
 		    },
 
-            trash : function(threadId) {
 
-            },
-
-            untrash : function(threadId) {
-
-            }
-
-    	};
-
-
-        this.messages = {
-            get : function(messageId) {
-
-            },
-
-
-            list : function(threadId) {
+            get : function(threadId) {
                 var url = `?ui=2&rt=j&view=cv&search=trash&th=${threadId}&type=${threadId}`;
                 
                 return self.ajax.get(url)
@@ -95,18 +80,72 @@ var GmailAPI = (function() {
                     });
             },
 
-            trash : function(messageId) {
+
+            trash : function(threadId) {
+                var query = `?ui=2&view=up&act=tr&rt=j&search=all&t=${threadId}`;
+                return self.ajax.get(query);
+            },
+
+
+            untrash : function(threadId) {
+                var query = `?ui=2&view=up&act=ib&rt=j&search=trash&t=${threadId}`;
+                return self.ajax.get(query);
+            }
+    	};
+
+     
+    
+
+        this.messages = {
+            get : function(messageId) {
+                if (!messageId) return Promise.resolve('');
+
+                var query = `?ui=2&view=om&th=${messageId}`;
+                var url = self.absUrl(query);
+
+                var CONTENT_START = '<pre class="raw_message_text" id="raw_message_text">';
+                
+                return ajax.get(url, {'ik' : self.userToken})
+                    .then(function(content) {
+                        var i = content.indexOf(CONTENT_START) + CONTENT_START.length;
+                        var j = content.indexOf('</pre>', i);
+                        content = content.slice(i, j);
+
+                        var pre = document.createElement('pre');
+                        pre.innerHTML = content;
+                        content = pre.innerText;
+
+                        var lines = content.split('\n');
+                        content = lines
+                            .map(function(l) {
+                                if (l.length == 76 && l.endsWith('='))
+                                    return l.slice(0, -1);
+                                return l + '\n';
+                            })
+
+                            .join('');
+
+                        return content;
+                    });
 
             },
 
-            untrash : function(messageId) {
 
+            trash : function(messageId) {
+                var query = `?ui=2&view=up&act=dm&rt=j&search=all&m=${messageId}`;
+                return self.ajax.get(query);
+            },
+
+
+            untrash : function(messageId) {
+                var query = `?ui=2&view=up&act=ib&rt=j&search=trash&m=${messageId}`;
+                return self.ajax.get(query);
             }
         };
     }
 
 
-    API.prototype.extend = function(obj) {
+    GmailAPI.prototype.extend = function(obj) {
     	var self = this;
     	obj = obj || {};
 
@@ -117,13 +156,13 @@ var GmailAPI = (function() {
     	return this;
     }
 
-	API.prototype.absUrl = function(query) {
+	GmailAPI.prototype.absUrl = function(query) {
         if (query.indexOf('://') > -1) return query;
         if (query[0] == '/') query = query.slice(0);
         return this.url + query;
     }
 
-    API.prototype.tokens = function() {
+    GmailAPI.prototype.tokens = function() {
         return {
             ik : this.userToken,
             at : this.actionToken
@@ -131,5 +170,5 @@ var GmailAPI = (function() {
     }
 
     
-	return API;
+	return GmailAPI;
 })();
