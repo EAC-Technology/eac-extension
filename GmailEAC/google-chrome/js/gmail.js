@@ -101,7 +101,9 @@ var Gmail = (function() {
         this.content = '';
         this.eac = null;
 
-        this.getContent = function() {
+        this.getContent = function(gapi) {
+            gapi = gapi || Gmail.api();
+
             if (this.content) return Promise.resolve(this.content);
             if (!this.id) return Promise.resolve('');
 
@@ -111,8 +113,8 @@ var Gmail = (function() {
 
             var self = this;
 
-            return Gmail
-                .getMessageSource(this.lastThreadMessageId)
+            return gapi.messages.get(this.lastThreadMessageId)
+                .getMessageSource()
                 .then(function(content) {
                     self.content = content;
                     return content;
@@ -120,25 +122,27 @@ var Gmail = (function() {
         }
 
 
-        this.getEAC = function() {
+        this.getEAC = function(gapi) {
+            gapi = gapi || Gmail.api();
+
             if (this.eac) return Promise.resolve(this.eac);
 
             var self = this;
             
-            var obj = Object
-                .values(Gmail.storage.eacs)
+            // var obj = Object
+            //     .values(Gmail.storage.eacs)
 
-                .reduce(function(res, eacData) {
-                    if (res) return res;
-                    return eacData.messages[self.id] || eacData.threads[self.id];
-                }, null);
+            //     .reduce(function(res, eacData) {
+            //         if (res) return res;
+            //         return eacData.messages[self.id] || eacData.threads[self.id];
+            //     }, null);
 
-            if (obj) 
-                return Promise.resolve(EAC.deserialize(obj));
+            // if (obj) 
+            //     return Promise.resolve(EAC.deserialize(obj));
 
 
             return this
-                .getContent()
+                .getContent(gapi)
                 .then(EAC.parse)
                 .then(function(eac) {
                     if (eac) {
@@ -650,108 +654,7 @@ var Gmail = (function() {
 
 
 
-    Gmail.fetchNewThreads = function() {
-        var lastTs = Gmail.storage.options.lastTs || (new Date(2016, 08, 01)).getTime(); // 2016-09-01
-
-        var query = {
-            search : 'query',
-            q      : 'has:attachment label:(-trash) filename:xml',
-        };
-
-        function fetch(offset) {
-            return Gmail.fetchThreads(query, offset, 25);
-        }
-
-        return new Promise(function(resolve, reject) {
-            var result = [];
-
-            function stopIteration() {
-                if (result.length) {
-                    Gmail.storage.options.lastTs = result[0].ts;
-                }
-
-                resolve(result);
-            }
-
-            function next(offset) {
-                offset = offset || 0;
-
-                function skipKey(th) {return th.id + '_' + th.ts};
-
-                fetch(offset)
-                    // skip threads that was processed early
-                    .then(function(threads) {
-                        return threads.filter(function(x) {
-                            return Boolean(Gmail.skipThreads[skipKey(x)]) == false;
-                        })
-                    })
-
-                    // save threads for skip after
-                    .then(function(threads) {
-                        threads.forEach(function(x) {
-                            Gmail.skipThreads[skipKey(x)] = true;
-                        })
-
-                        return threads;
-                    })
-
-                    .then(function(threads) {
-                        var threadsCount = threads.length;
-                        if (!threadsCount) return stopIteration();
-
-                        var isEnd = threads.every(function(t) {
-                            return t.ts < lastTs;
-                        });
-
-                        if (isEnd) return stopIteration();
-
-                        threads = threads
-                            .sort(Utils.cmpByKey('ts'))
-                            .reverse() //first - new messages
-                            .filter(function(th) {
-                                return th.ts >= lastTs; // save messages that older lastTs
-                            });
-
-                        result = result.concat(threads);
-                        next(offset + threadsCount);
-                    });
-            }
-
-            next();
-        });
-    }
-
-
-
-    Gmail.filterEacMessages = function(threads) {
-        return Utils.Promise
-            .map(function(thread) {
-                return thread.getEAC();
-            }, threads)
-            
-            .then(function(eacs) {
-                return eacs
-                    .filter(function(e) {
-                        return Boolean(e);
-                    })
-            }) 
-    }
-
-
-
-    Gmail.fetchNewEacs = function() {
-        __.debug('Fetching new EACs..');
-
-        return Gmail
-            .fetchNewThreads()
-            .then(Gmail.filterEacMessages)
-            .then(function(eacs) {
-                __.debug('Founded eacs:', eacs);
-
-                return eacs.sort(Utils.cmpByKey('ts'));
-            })
-    }
-
+    
 
 
 
@@ -790,66 +693,6 @@ var Gmail = (function() {
     }
 
 
-    Gmail.processEacs = function(eacs) {
-        __.debug('Processing EACs..');
-
-        return Utils.Promise
-            .map(function(eac) {
-                
-                // save thread ID for this EAC
-                var threads = Gmail.storage.setDefault(
-                    ['eacs', eac.eacToken.toLowerCase()], 
-                    {threads : {}, messages : {}}
-                ).threads;
-
-                threads[eac.messageId] = eac.serialize();
-
-                return Gmail
-                    // load all Gmail thread of messages for EAC
-                    .getThreadMessages(eac.messageId)
-
-                    // load EAC object for each message in thread
-                    .then(function(messages) {
-                        return Utils.Promise
-                            .map(function(m) {
-                                return m.getEAC();
-                            }, messages)
-                    });
-            }, eacs)
-
-            // reduce - filter - sort of all EACs
-            .then(function(allEacs) {
-                return allEacs
-                    .reduce(function(res, x) {
-                        return res.concat(x);
-                    }, [])
-
-                    .filter(function(x) {
-                        return Boolean(x);
-                    })
-
-                    .sort(Utils.cmpByKey('ts'));
-            })
-
-            // process EAC-Methods
-            .then(function(allEacs) {
-                return Utils.Promise.map(function(eac) {
-                    return eac.processEacMethod();
-                }, allEacs);
-            })
-
-            // save storage
-            .then(function(allEacs) {
-                return new Promise(function(resolve, reject) {
-                    Gmail.storage
-                        .save()
-                        .then(function() {
-                            resolve(allEacs)
-                        });
-                });
-            })
-
-    }
 
 
 
