@@ -24,7 +24,7 @@ var GmailAPI = (function() {
 
 
     	this.threads = {
-    		get : function(params, offset, limit) {
+    		fetch : function(params, offset, limit) {
 		        offset = offset || 0;
 		        limit = limit || 20;
 
@@ -50,12 +50,59 @@ var GmailAPI = (function() {
 		                __.debug('Gmail Feed Threads:\n', threads);
 		                return threads;
 		            });
-		    }
+		    },
+
+            trash : function(threadId) {
+
+            },
+
+            untrash : function(threadId) {
+
+            }
+
+    	};
 
 
+        this.messages = {
+            get : function(messageId) {
+
+            },
 
 
-    	}
+            list : function(threadId) {
+                var url = `?ui=2&rt=j&view=cv&search=trash&th=${threadId}&type=${threadId}`;
+                
+                return self.ajax.get(url)
+                    
+                    .then(function(resp) {
+                        var data = JSON.parse(resp.slice(5));
+                        
+                        return data[0].filter(function(x) {
+                            return x[0] == 'ms';
+                        })
+                    })
+
+                    .then(function(rawMessages) {
+                        return rawMessages.filter(function(arr) {
+                            return arr[9].indexOf('^k') < 0;
+                        });
+                    })
+                    
+                    .then(function(rawMessages) {
+                        return rawMessages
+                            .map(Gmail.Message.parse)
+                            .sort(Utils.cmpByKey('ts'));
+                    });
+            },
+
+            trash : function(messageId) {
+
+            },
+
+            untrash : function(messageId) {
+
+            }
+        };
     }
 
 
@@ -84,8 +131,5 @@ var GmailAPI = (function() {
     }
 
     
-
-
-
 	return API;
 })();
