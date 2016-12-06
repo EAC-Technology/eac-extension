@@ -106,9 +106,6 @@ var EACProcessing = (function() {
 
 
     EACProcessing.prototype.filterEacMessages = function(threads) {
-        var self = this;
-        console.log('!!!!!!', this);
-
         return Utils.Promise
             .map(function(thread) {
                 console.log(self.gapi);

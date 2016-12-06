@@ -34,8 +34,8 @@ var GmailAPI = (function() {
 		        return self.ajax.get(url, params)
 		            .then(function(resp) {
 		                var data = JSON.parse(resp.slice(5));
-		            
-		                data = data[0].filter(function(x) {
+
+                        data = data[0].filter(function(x) {
 		                    return x[0] == 'tb';
 		                });
 
@@ -47,7 +47,13 @@ var GmailAPI = (function() {
 		            })
 
 		            .then(function(threads) {
-		                threads = threads.map(Gmail.Message.parse);
+		                threads = threads
+                            .map(function(x) {
+                                var message = Gmail.Message.parse(x);
+                                message.gapi = self;
+                                return message;
+                            })
+
 		                __.debug('Gmail Feed Threads:\n', threads);
 		                return threads;
 		            });
@@ -75,7 +81,11 @@ var GmailAPI = (function() {
                     
                     .then(function(rawMessages) {
                         return rawMessages
-                            .map(Gmail.Message.parse)
+                            .map(function(x) {
+                                var message = Gmail.Message.parse(x);
+                                message.gapi = self;
+                                return message;
+                            })
                             .sort(Utils.cmpByKey('ts'));
                     });
             },

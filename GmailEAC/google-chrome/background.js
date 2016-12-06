@@ -125,10 +125,15 @@ Actions.getExtensionOptions = function(message, sender) {
 
 
 
-
+var test = null;
 
 function onMessage(message, sender, sendResponse) {
     console.info({message : message, sender : sender});
+
+    if (message.action == 'poll') {
+        test = sendResponse;
+        return;
+    }
 
     var action = Actions[message.action] || null;
     var res = action && action(message, sender);

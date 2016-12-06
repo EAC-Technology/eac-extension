@@ -101,9 +101,9 @@ var Gmail = (function() {
         this.content = '';
         this.eac = null;
 
-        this.getContent = function(gapi) {
-            gapi = gapi || Gmail.api();
+        this.gapi = null;
 
+        this.getContent = function() {
             if (this.content) return Promise.resolve(this.content);
             if (!this.id) return Promise.resolve('');
 
@@ -113,8 +113,7 @@ var Gmail = (function() {
 
             var self = this;
 
-            return gapi.messages.get(this.lastThreadMessageId)
-                .getMessageSource()
+            return this.gapi.messages.get(this.lastThreadMessageId)
                 .then(function(content) {
                     self.content = content;
                     return content;
@@ -122,9 +121,7 @@ var Gmail = (function() {
         }
 
 
-        this.getEAC = function(gapi) {
-            gapi = gapi || Gmail.api();
-
+        this.getEAC = function() {
             if (this.eac) return Promise.resolve(this.eac);
 
             var self = this;
@@ -142,7 +139,7 @@ var Gmail = (function() {
 
 
             return this
-                .getContent(gapi)
+                .getContent()
                 .then(EAC.parse)
                 .then(function(eac) {
                     if (eac) {

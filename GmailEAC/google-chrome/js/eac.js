@@ -12,10 +12,6 @@ var EAC = (function() {
         this.serialize = function() {
             return EAC.serialize(this);
         }
-
-        this.processEacMethod = function() {
-            return EAC.processEacMethod(this);
-        }
     };
 
 
