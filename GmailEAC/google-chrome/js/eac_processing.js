@@ -108,8 +108,7 @@ var EACProcessing = (function() {
     EACProcessing.prototype.filterEacMessages = function(threads) {
         return Utils.Promise
             .map(function(thread) {
-                console.log(self.gapi);
-                return thread.getEAC(self.gapi);
+                return thread.getEAC();
             }, threads)
             
             .then(function(eacs) {
@@ -228,6 +227,16 @@ var EACProcessing = (function() {
         }
 
 
+
+        function moveMessageToTrashIfEnabled(messageId) {
+            if (Extension.options.enable_move_to_trash)
+                return self.gapi.messages.trash(messageId);
+
+            return Promise.resolve(true);
+        }
+
+
+
         function trashOldEacs() {
             var ids = Object
                 .values(messages)
@@ -247,7 +256,7 @@ var EACProcessing = (function() {
 
             return Utils.Promise
                 .map(function(id) {
-                    return self.gapi.messages.trash(id)
+                    return moveMessageToTrashIfEnabled(id)
                         .then(function(res) {
                             __.debug('Message', id, 'has deleted.');
                             delete messages[id];
@@ -271,7 +280,7 @@ var EACProcessing = (function() {
             return trashOldEacs()
 
                 .then(function() {
-                    return self.gapi.messages.trash(eac.messageId);
+                    return moveMessageToTrashIfEnabled(eac.messageId);
                 })
 
                 .then(function() {
@@ -283,7 +292,100 @@ var EACProcessing = (function() {
     }
 
 
+
+    EACProcessing.prototype.checkUnreadEacs = function() {
+        __.debug('Check unread EACs');
+        
+        var self = this;
+
+        return this
+            .fetchUnreadThreads()
+
+            .then(function(messages) {
+                var eacIds = Object
+                    .values(self.storage.eacs)
+                    .reduce(function(res, eac) {
+                        Object.keys(eac.messages || {}).forEach(function(key) {
+                            res[key] = true;
+                        });
+
+                        Object.keys(eac.threads || {}).forEach(function(key) {
+                            res[key] = true;
+                        })
+
+                        return res;
+                    }, {});
+
+                return messages.filter(function(m) {
+                    return eacIds[m.id];
+                });
+            })
+
+            .then(function(messages) {
+                Extension.setUnreadCountBadge(messages.length);
+            });
+
+    }
+
+
+    EACProcessing.prototype.checkNewEacs = function() {
+        __.debug('Check new EACs worker.');
+
+        var self = this;
+
+        return this
+            .fetchNewEacs()
+            
+            .then(function(eacs) {
+                return self.processEacs(eacs);
+            })
+
+            .then(function(eacs) {
+                if (eacs.length) Extension.needRefreshUI();
+                return eacs;
+            })
+    }
+
+
+    EACProcessing.prototype.run = function() {
+        var self = this;
+
+        return this
+            .init()
+            .then(function() {
+                self.checkNewEacs();
+            })
+            .then(function() {
+                self.checkUnreadEacs();
+            });
+    }
+
+
+
+
+
+    EACProcessing.prototype.startWorker = function() {
+        var self = this;
+
+        return Utils.Promise.worker(function() {
+            return self
+                .run()
+
+                .then(function() {
+                    return 20000; // 20 sec
+                })
+
+                .catch(function(err) {
+                    __.error(err);
+                    return Promise.resolve(20000); // failover
+                })
+        })
+    }
+
+            
+
     return EACProcessing;
+
 
 })();
 

@@ -6,7 +6,15 @@
 			a {
 				color : #AE0640;
 			}
+
+			td {
+				padding-top: 15px;
+				/*padding-bottom: 5px;*/
+			}
 		</style>
+
+		<script type="text/javascript" src="js/common.js"></script>
+
 
 	</head>
 	<body>
@@ -16,6 +24,35 @@
 			</a>
 		
 			<h1>EAC Plugin v.<span id="version"></span></h1>
+
+			<br>
+			
+			<table>
+				<tr>
+					<td>
+						<input type="checkbox" class="option" option-id="enable_unread_count" />
+						<span>Show count of unread EACs on icon</span>
+					</td>
+				</tr>
+
+				<tr>
+					<td>
+						<input type="checkbox" class="option" option-id="enable_background_checks" />
+						<span>Check new EACs, even when the GMail is not opened</span>
+					</td>
+				</tr>
+
+				<tr>
+					<td>
+						<input type="checkbox" class="option" option-id="enable_move_to_trash" />
+						<span>Enable to move old EAC messages to trash when "update" or "delete" EAC-Method is handling</span>
+					</td>
+				</tr>
+			</table>
+
+
+			<br><br><br>
+
 		
 			<a href="http://appinmail.io/appinmail" target="_blank">About</a>
 			&nbsp;|&nbsp;

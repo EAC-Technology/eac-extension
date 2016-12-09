@@ -1,4 +1,5 @@
 console.info('background.js imported');
+Extension.debug = true;
 
 
 function fix_csp_response_headers(details, key, value) {
@@ -39,6 +40,9 @@ chrome.webRequest.onHeadersReceived.addListener(
 
 var unreadCounts = {};
 var userInfo = {};
+var ports = {};
+var worker = null;
+
 
 
 function getUserKey(url) {
@@ -56,7 +60,10 @@ Storage.init()
     .then(function() {
         Storage.setDefault(['accounts'], {});
         Storage.setDefault(['options'], {});
-    });
+    })
+    .then(function() {
+        reinitWorkers();
+    })
 
 
 
@@ -68,15 +75,8 @@ function Actions() {};
 Actions.setUnreadCountBadge = function(message, sender) {
     var key = getUserKey(sender.url);
     unreadCounts[key] = message.value;
-    
-    var count = Object
-        .values(unreadCounts)
-        .reduce(function(res, x) {
-            return res + x;
-        }, 0);
 
-    count = (count) ? count.toString() : '';
-    chrome.browserAction.setBadgeText({text: count});
+    refreshIcon();    
     
     return true;
 }
@@ -118,22 +118,26 @@ Actions.getStats = function(message, sender) {
     return stats;
 }
 
+
 Actions.getExtensionOptions = function(message, sender) {
+    return Storage.options;
+}
+
+Actions.updateExtensionOptions = function(message, sender) {
+    Object.assign(Storage.options, message.value);
+    Storage.save();
+    
+    refreshIcon();
+    reinitWorkers();
+
     return Storage.options;
 }
 
 
 
 
-var test = null;
-
 function onMessage(message, sender, sendResponse) {
     console.info({message : message, sender : sender});
-
-    if (message.action == 'poll') {
-        test = sendResponse;
-        return;
-    }
 
     var action = Actions[message.action] || null;
     var res = action && action(message, sender);
@@ -149,10 +153,53 @@ chrome.runtime.onMessageExternal.addListener(onMessage);
 
 
 
-// chrome.browserAction.onClicked.addListener(function(tab) {
-//     chrome.browserAction.setPopup({popup : "popup.html"});
-// })
 
+
+
+
+function refreshIcon() {
+    if (Storage.options.enable_unread_count) {
+        var count = Object
+            .values(unreadCounts)
+            .reduce(function(res, x) {
+                return res + x;
+            }, 0);
+
+        count = (count) ? count.toString() : '';
+        chrome.browserAction.setBadgeText({text : count});
+    }
+    else 
+        chrome.browserAction.setBadgeText({text : ''});
+}
+
+
+
+function reinitWorkers() {
+    console.log('reinit Background Workers');
+
+    if (worker) worker.stop();
+
+    if (! Storage.options.enable_background_checks) {
+        __.info('Background checks is disabled');
+        return;
+    }
+
+    worker = Utils.Promise.worker(function() {
+        return Utils.Promise
+            .map(function(account) {
+                return (new EACProcessing(account)).run();
+            }, Object.values(Storage.accounts))
+
+            .then(function() {
+                return 20000; // 20 sec
+            })
+
+            .catch(function(err) {
+                __.error(err);
+                return Promise.resolve(20000);
+            })
+    })
+}
 
 
 

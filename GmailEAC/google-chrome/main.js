@@ -44,6 +44,8 @@ inject_script({fileName : 'js/gmail_api.js'});
 
 inject_script({fileName : 'js/eac.js'});
 
+inject_script({fileName : 'js/eac_processing.js'});
+
 inject_script({fileName : 'js/gmail.js'});
 
 

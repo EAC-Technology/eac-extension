@@ -1,3 +1,15 @@
+function $$(selector, startNode) {
+        startNode = startNode || document;
+        return Array.prototype.slice.apply(startNode.querySelectorAll(selector));
+    }
+
+function $(selector, startNode) {
+    startNode = startNode || document;
+    return startNode.querySelector(selector);
+}
+
+
+
 function __() {};
 
 __.$ = function __$(selector, elem) {
@@ -114,8 +126,27 @@ Extension.setUnreadCountBadge = function(value) {
     return Extension.sendMessage({action : 'setUnreadCountBadge', value : value});
 }
 
+
+
+Extension.options = {};
+
 Extension.getOptions = function() {
-    return Extension.sendMessage({action : 'getExtensionOptions'});
+    return Extension
+        .sendMessage({action : 'getExtensionOptions'})
+        .then(function(options) {
+            Extension.options = options;
+            return options;
+        })
+}
+
+Extension.setOptions = function(options) {
+    Object.assign(Extension.options, options);
+    return Extension.sendMessage({action : 'updateExtensionOptions', value : options});
+}
+
+
+Extension.isContentScript = function() {
+    return Boolean(chrome.app.getDetails()) == false;
 }
 
 
@@ -135,7 +166,33 @@ Extension.init = function() {
     this.logoUrl = this.getURL('icons/logo_16.png');
 
     this.EXTENSION_ID = this.EXTENSION_URL.split('/', 3).slice(-1)[0];
+
+
+    Extension.getOptions();
+
+
+    // connect to background page for receive messages
+    var fakeOnMessage = {addListener : function() {}};
+    Extension.onMessage = fakeOnMessage;
+
+    if (Extension.isContentScript()) {
+        var port = chrome.runtime.connect(Extension.EXTENSION_ID);
+        Extension.onMessage = port.onMessage;
+        
+        port.onDisconnect.addListener(function() {
+            Extension.onMessage = fakeOnMessage;
+        })
+
+        Extension.onMessage.addListener(function(message) {
+            if (message == 'optionsModified') Extension.getOptions();
+        })
+    }
 }
+
+Extension.needRefreshUI = function() {
+    console.warn('needRefreshUI is not implemented!');
+}
+
 
 
 Extension.init();

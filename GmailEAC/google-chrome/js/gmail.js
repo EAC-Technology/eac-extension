@@ -691,16 +691,20 @@ var Gmail = (function() {
 
 
 
-
-
     Gmail.workers = {};
 
 
     Gmail.init = function() {
         return Utils
             .Promise.waitUntil(function() {
-                __.debug('Wait loading window.MainDB');
-                return window.MainDB && window.Extension && window.Extension.Storages;
+                __.debug('Wait loading of main libs..');
+                
+                return window.Extension 
+                    && window.Extension.Storages
+                    && window.ajax
+                    && window.MainDB
+                    && window.EAC
+                    && window.EACProcessing;
             })
             
             .then(function() {
@@ -731,8 +735,16 @@ var Gmail = (function() {
             })
 
             .then(function() {
+                __.debug('Wait document is ready..');
+
                 return Utils.Promise.waitUntil(function() {
                     return document.readyState == 'complete';
+                })
+            })
+
+            .then(function() {
+                Extension.onMessage.addListener(function(message) {
+                    if (message == 'needRefreshUI') Gmail.needRefreshUI();
                 })
             })
 
@@ -747,75 +759,34 @@ var Gmail = (function() {
             })
 
             .then(function() {
-                Gmail.workers.checkEacs = Utils.Promise.worker(function() {
-                    __.debug('Check new EACs worker.');
+                var eacProcessor = new EACProcessing(Gmail.Account.current());
+                Gmail.workers.checkEacs = eacProcessor.startWorker();
 
-                    return Gmail
-                        .fetchNewEacs()
-                        
-                        .then(Gmail.processEacs)
 
-                        .then(function(eacs) {
-                            if (eacs.length) Gmail.needRefreshUI();
-                            return eacs;
+                Gmail.workers.updateAccountDetails = Utils.Promise.worker(function() {
+                    __.debug('Send account info to background worker');
+
+                    return Extension.sendMessage({
+                            action : 'setUserInfo', 
+                            value : Gmail.Account.current().serialize()
                         })
 
                         .then(function() {
-                            __.debug('Check unread EACs');
-
-                            return Gmail
-                                .fetchUnreadThreads()
-
-                                .then(function(messages) {
-                                    var eacIds = Object
-                                        .values(Gmail.storage.eacs)
-                                        .reduce(function(res, eac) {
-                                            Object.keys(eac.messages || {}).forEach(function(key) {
-                                                res[key] = true;
-                                            });
-
-                                            Object.keys(eac.threads || {}).forEach(function(key) {
-                                                res[key] = true;
-                                            })
-
-                                            return res;
-                                        }, {});
-
-                                    return messages.filter(function(m) {
-                                        return eacIds[m.id];
-                                    })
-                                })
-
-                                .then(function(messages) {
-                                    Extension.setUnreadCountBadge(messages.length);
-                                })
-
-                                .then(function() {
-                                    __.debug('Send info to background worker');
-
-                                    return Extension.sendMessage({
-                                        action : 'setUserInfo', 
-                                        value : Gmail.Account.current().serialize()
-                                    });
-                                })
-                            
-                        })
-                        
-                        .then(function() {
-                            return 20000; // timeout
+                            return 120000;
                         })
 
                         .catch(function(err) {
                             __.error(err);
-                            return Promise.resolve(20000); // failover
+                            return Promise.resolve(120000);
                         })
-                })
+                });
             })
+
     }
 
 
-
     return Gmail;
+
 })();
 
 
