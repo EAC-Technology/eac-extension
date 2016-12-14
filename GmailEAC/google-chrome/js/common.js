@@ -1,7 +1,7 @@
 function $$(selector, startNode) {
-        startNode = startNode || document;
-        return Array.prototype.slice.apply(startNode.querySelectorAll(selector));
-    }
+    startNode = startNode || document;
+    return Array.prototype.slice.apply(startNode.querySelectorAll(selector));
+}
 
 function $(selector, startNode) {
     startNode = startNode || document;
@@ -105,11 +105,112 @@ Extension.Storages = (function() {
 
 
 Extension.sendMessage = function(message) {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function(resolve) {
         if (!Extension.EXTENSION_ID) return resolve(null);
+        
+        if (Extension.isBackgroundPage) {
+            BackgroundMessaging.sendMessage(message, {}, resolve);
+            return;
+        }
+        
         chrome.runtime.sendMessage(Extension.EXTENSION_ID, message, resolve);
     });
 }
+
+
+Extension.sendBroadcastMessage = function(message) {
+    if (! Extension.isBackgroundPage) return;
+
+    Object.values(ports || {}).forEach(function(account) {
+        Object.values(account || {}).forEach(function(tab) {
+            tab.postMessage(message);
+        })
+    })
+}
+
+
+// Extension.port = null;
+// Extension.handlers = [];
+
+// Extension.getConnection = function() {
+//     if (Extension.port) return Promise.resolve(Extension.port);
+
+//     if (!Extension.EXTENSION_ID) return Promise.resolve(null);
+
+//     return new Promise(function(resolve) {
+//         var port = chrome.runtime.connect(Extension.EXTENSION_ID);
+//         Extension.port = port;
+
+//         port.onDisconnect.addListener(function() {
+//             Extension.port = null;
+//         });
+
+//         Extension.handlers.forEach(function(handler) {
+//             port.onMessage.addListener(handler);
+//         })
+
+//         resolve(port);
+//     });
+// }
+
+// Extension.onMessage = {
+//     addListener : function(handler) {
+//         Extension.handlers.push(handler);
+//         if (Extension.port) 
+//             Extension.port.onMessage.addListener(handler);
+//     }
+// }
+
+
+
+// Extension.InternalConnection = (function() {
+//     var Port = function() {
+//         var self = this;
+
+//         this.remotePort = null;
+        
+//         this.handlers = {
+//             onMessage : [],
+//             onDisconnect : []
+//         };
+
+//         this.connect = function(port) {
+//             this.remotePort = port;
+//             port.remotePort = this;
+//         }
+
+//         this.disconnect = function() {
+//             this.remotePort.
+//         }
+
+
+//         this.onMessage = {
+//             addListener : function(handler) {
+//                 self.handlers.onMessage.push(handler);
+//             }
+//         }
+
+//         this.onDisconnect = {
+//             addListener : function(handler) {
+//                 self.handlers.onDisconnect.push(handler);
+//             }
+//         }
+        
+
+//         this.receiveMessage = function(message) {
+//             self.handlers.forEach(function(handler) {
+//                 handler(message, self.remotePort);
+//             })
+//         }
+
+//         this.postMessage = function(message) {
+//             this.remotePort.receiveMessage(message);
+//         }
+//     }
+
+// })();
+
+
 
 
 // Extension.onMessage = function() {
@@ -122,8 +223,8 @@ Extension.setBadgeText = function(text) {
     return Extension.sendMessage({action : 'setBadgeText', value : text});
 }
 
-Extension.setUnreadCountBadge = function(value) {
-    return Extension.sendMessage({action : 'setUnreadCountBadge', value : value});
+Extension.setUnreadCount = function(url, value) {
+    return Extension.sendMessage({action : 'setUnreadCount', url : url, value : value});
 }
 
 
@@ -152,6 +253,42 @@ Extension.isContentScript = function() {
 
 
 
+
+Extension.connectionPort = null;
+
+Extension.connect = function() {
+    if (Extension.connectionPort) 
+        Extension.connectionPort.disconnect();
+
+    var port = chrome.runtime.connect(Extension.EXTENSION_ID);
+    Extension.connectionPort = port;
+        
+    port.onDisconnect.addListener(function() {
+        Extension.connectionPort = null;
+    });
+
+    Extension.onMessageHandlers.forEach(function(handler) {
+        port.onMessage.addListener(handler);
+    })
+}
+
+Extension.onMessageHandlers = [];
+
+Extension.onMessage = {
+    addListener : function(handler) {
+        Extension.onMessageHandlers.push(handler);
+        if (Extension.connectionPort) Extension.connectionPort.onMessage.addListener(handler);
+    }
+
+}
+
+Extension.checkConnection = function() {
+    return Extension.sendMessage({action : 'checkConnection'});
+}
+
+
+
+
 Extension.init = function() {
     if (!this.EXTENSION_URL) {
         this.EXTENSION_URL = 
@@ -167,29 +304,49 @@ Extension.init = function() {
 
     this.EXTENSION_ID = this.EXTENSION_URL.split('/', 3).slice(-1)[0];
 
+    this.isBackgroundPage = false;
+
 
     Extension.getOptions();
 
-
-    // connect to background page for receive messages
-    var fakeOnMessage = {addListener : function() {}};
-    Extension.onMessage = fakeOnMessage;
-
     if (Extension.isContentScript()) {
-        var port = chrome.runtime.connect(Extension.EXTENSION_ID);
-        Extension.onMessage = port.onMessage;
-        
-        port.onDisconnect.addListener(function() {
-            Extension.onMessage = fakeOnMessage;
-        })
-
-        Extension.onMessage.addListener(function(message) {
-            if (message == 'optionsModified') Extension.getOptions();
-        })
+        Extension.connect();
     }
+
+
+    Extension.onMessage.addListener(function(message) {
+        if (message == 'optionsModified') Extension.getOptions();
+    })
+
+
+    this.heartBeatWorker = Utils.Promise.worker(function() {
+        return Extension
+            .checkConnection()
+            .then(function(status) {
+                if (status == false) Extension.connect();
+                return 20000;
+            })
+    })
+
 }
 
-Extension.needRefreshUI = function() {
+
+Extension.needRefreshUI = function(account) {
+    if (Extension.isContentScript()) {
+        Gmail.needRefreshUI();
+        return;
+    }
+
+    if (Extension.isBackgroundPage) {
+        var key = getUserKey(account.url);
+       
+        Object.values(ports[key] || {}).forEach(function(port) {
+            port.postMessage('needRefreshUI');
+        });
+
+        return;
+    }
+
     console.warn('needRefreshUI is not implemented!');
 }
 

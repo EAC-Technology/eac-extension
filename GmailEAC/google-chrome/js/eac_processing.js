@@ -3,6 +3,8 @@ var EACProcessing = (function() {
     function EACProcessing(account) {
         var self = this;
         
+        this.account = account;
+        
         this.gapi = new GmailAPI(account);
         this.storage = {};
 
@@ -322,7 +324,7 @@ var EACProcessing = (function() {
             })
 
             .then(function(messages) {
-                Extension.setUnreadCountBadge(messages.length);
+                Extension.setUnreadCount(self.account.url, messages.length);
             });
 
     }
@@ -341,7 +343,7 @@ var EACProcessing = (function() {
             })
 
             .then(function(eacs) {
-                if (eacs.length) Extension.needRefreshUI();
+                if (eacs.length) Extension.needRefreshUI(self.account);
                 return eacs;
             })
     }

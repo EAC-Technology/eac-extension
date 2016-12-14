@@ -706,7 +706,7 @@ var Gmail = (function() {
                     && window.EAC
                     && window.EACProcessing;
             })
-            
+
             .then(function() {
                 __.debug('Load Plugin Storage')
                 return Extension.Storages.get(Gmail.userEmail());
@@ -759,15 +759,33 @@ var Gmail = (function() {
             })
 
             .then(function() {
-                var eacProcessor = new EACProcessing(Gmail.Account.current());
-                Gmail.workers.checkEacs = eacProcessor.startWorker();
+                if (! Extension.options.enable_background_checks) {
+                    var eacProcessor = new EACProcessing(Gmail.Account.current());
+                    Gmail.workers.checkEacs = eacProcessor.startWorker();
+                }
+
+
+                Extension.onMessage.addListener(function(message) {
+                    if (message == 'restartEacProcessing') {
+                        if (Gmail.workers.checkEacs) Gmail.workers.checkEacs.stop();
+                        
+                        Extension
+                            .getOptions()
+
+                            .then(function(options) {
+                                if (options.enable_background_checks) return;
+                                Gmail.workers.checkEacs = (new EACProcessing(Gmail.Account.current())).startWorker();
+                            })
+                    }
+                });
+                
 
 
                 Gmail.workers.updateAccountDetails = Utils.Promise.worker(function() {
                     __.debug('Send account info to background worker');
 
                     return Extension.sendMessage({
-                            action : 'setUserInfo', 
+                            action : 'saveAccountInfo',
                             value : Gmail.Account.current().serialize()
                         })
 

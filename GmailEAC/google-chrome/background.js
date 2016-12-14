@@ -1,5 +1,7 @@
 console.info('background.js imported');
+
 Extension.debug = true;
+Extension.isBackgroundPage = true;
 
 
 function fix_csp_response_headers(details, key, value) {
@@ -37,9 +39,7 @@ chrome.webRequest.onHeadersReceived.addListener(
 
 
 
-
 var unreadCounts = {};
-var userInfo = {};
 var ports = {};
 var worker = null;
 
@@ -61,8 +61,9 @@ Storage.init()
         Storage.setDefault(['accounts'], {});
         Storage.setDefault(['options'], {});
     })
+
     .then(function() {
-        reinitWorkers();
+        restartEacProcessing();
     })
 
 
@@ -72,8 +73,8 @@ Storage.init()
 
 function Actions() {};
 
-Actions.setUnreadCountBadge = function(message, sender) {
-    var key = getUserKey(sender.url);
+Actions.setUnreadCount = function(message, sender) {
+    var key = getUserKey(message.url);
     unreadCounts[key] = message.value;
 
     refreshIcon();    
@@ -86,13 +87,9 @@ Actions.setBadgeText = function(message, sender) {
     return true;
 }
 
-Actions.setUserInfo = function(message, sender) {
-    var key = getUserKey(sender.url);
-    userInfo[key] = message.value;
-
+Actions.saveAccountInfo = function(message, sender) {
     Storage.accounts[message.value.email] = message.value;
     Storage.save();
-
     return true;
 }
 
@@ -125,13 +122,47 @@ Actions.getExtensionOptions = function(message, sender) {
 
 Actions.updateExtensionOptions = function(message, sender) {
     Object.assign(Storage.options, message.value);
-    Storage.save();
     
+    Extension.sendBroadcastMessage('optionsModified');
+    
+    Storage.save();
+
     refreshIcon();
-    reinitWorkers();
+    restartEacProcessing();
 
     return Storage.options;
 }
+
+Actions.checkConnection = function(message, sender) {
+    var key = getUserKey(sender.url);
+    return Boolean(ports[key] && ports[key][sender.tab.id]);
+}
+
+
+
+
+
+var BackgroundMessaging = (function() {
+    var Messaging = function() {};
+
+    var handlers = [];
+
+    Messaging.onMessage = {
+        addListener : function(handler) {
+            handlers.push(handler);
+        }
+    }
+
+    Messaging.sendMessage = function(message, sender, sendResponse) {
+        handlers.forEach(function(handler) {
+            handler(message, sender || {}, sendResponse || function() {});
+        })
+    }
+
+    return Messaging;
+
+})();
+
 
 
 
@@ -147,10 +178,29 @@ function onMessage(message, sender, sendResponse) {
 }
 
 
-
 chrome.runtime.onMessage.addListener(onMessage);
 chrome.runtime.onMessageExternal.addListener(onMessage);
+BackgroundMessaging.onMessage.addListener(onMessage);
 
+
+
+
+
+function onConnect(port) {
+    __.debug('New connection from', port.sender.url);
+
+    var key = getUserKey(port.sender.url);
+
+    if (!(key in ports)) ports[key] = {};
+    ports[key][port.sender.tab.id] = port;
+
+    port.onDisconnect.addListener(function() {
+        delete ports[key][port.sender.tab.id];
+    })
+}
+
+chrome.runtime.onConnect.addListener(onConnect);
+chrome.runtime.onConnectExternal.addListener(onConnect);
 
 
 
@@ -158,24 +208,30 @@ chrome.runtime.onMessageExternal.addListener(onMessage);
 
 
 function refreshIcon() {
+    var count = '';
+
     if (Storage.options.enable_unread_count) {
-        var count = Object
+        count = Object
             .values(unreadCounts)
             .reduce(function(res, x) {
                 return res + x;
             }, 0);
 
         count = (count) ? count.toString() : '';
-        chrome.browserAction.setBadgeText({text : count});
     }
-    else 
-        chrome.browserAction.setBadgeText({text : ''});
+
+    chrome.browserAction.getBadgeText({}, function(val) {
+        if (count != val)
+            chrome.browserAction.setBadgeText({text : count});
+    })
 }
 
 
 
-function reinitWorkers() {
-    console.log('reinit Background Workers');
+function restartEacProcessing() {
+    console.log('Restart EACs Processing');
+
+    Extension.sendBroadcastMessage('restartEacProcessing');
 
     if (worker) worker.stop();
 
@@ -185,10 +241,15 @@ function reinitWorkers() {
     }
 
     worker = Utils.Promise.worker(function() {
-        return Utils.Promise
-            .map(function(account) {
-                return (new EACProcessing(account)).run();
-            }, Object.values(Storage.accounts))
+        return Extension
+            .getOptions()
+            
+            .then(function() {
+                return Utils.Promise
+                    .map(function(account) {
+                        return (new EACProcessing(account)).run();
+                    }, Object.values(Storage.accounts))
+            })
 
             .then(function() {
                 return 20000; // 20 sec
@@ -198,7 +259,7 @@ function reinitWorkers() {
                 __.error(err);
                 return Promise.resolve(20000);
             })
-    })
+    });
 }
 
 

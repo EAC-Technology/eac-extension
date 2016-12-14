@@ -1,6 +1,9 @@
 var version = document.getElementById('version');
 if (version) version.innerText = chrome.app.getDetails().version_name;
 
+var version = document.getElementById('name');
+if (version) version.innerText = chrome.app.getDetails().name;
+
 
 
 Extension.getOptions().then(function(options) {
