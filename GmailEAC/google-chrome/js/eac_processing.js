@@ -2,7 +2,7 @@ var EACProcessing = (function() {
 	
     function EACProcessing(account) {
         var self = this;
-        
+
         this.account = account;
         
         this.gapi = new GmailAPI(account);
@@ -51,7 +51,7 @@ var EACProcessing = (function() {
 
             function stopIteration() {
                 if (result.length) {
-                    self.storage.options.lastTs = result[0].ts;
+                    self.storage.setDefault(['options'], {}).lastTs = result[0].ts;
                 }
 
                 resolve(result);
@@ -231,7 +231,7 @@ var EACProcessing = (function() {
 
 
         function moveMessageToTrashIfEnabled(messageId) {
-            if (Extension.options.enable_move_to_trash)
+            if (Extension.options.enable_eac_processing && Extension.options.enable_move_to_trash)
                 return self.gapi.messages.trash(messageId);
 
             return Promise.resolve(true);
@@ -305,7 +305,7 @@ var EACProcessing = (function() {
 
             .then(function(messages) {
                 var eacIds = Object
-                    .values(self.storage.eacs)
+                    .values(self.storage.eacs || {})
                     .reduce(function(res, eac) {
                         Object.keys(eac.messages || {}).forEach(function(key) {
                             res[key] = true;
@@ -354,9 +354,11 @@ var EACProcessing = (function() {
 
         return this
             .init()
+
             .then(function() {
                 self.checkNewEacs();
             })
+            
             .then(function() {
                 self.checkUnreadEacs();
             });
@@ -368,6 +370,12 @@ var EACProcessing = (function() {
 
     EACProcessing.prototype.startWorker = function() {
         var self = this;
+
+        // fake worker if processing is disabled
+        if (Extension.options.enable_eac_processing == false)
+            return Utils.Promise.worker(function() {
+                return 300000; // 5 min
+            })
 
         return Utils.Promise.worker(function() {
             return self
