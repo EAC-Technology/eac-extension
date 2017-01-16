@@ -11,8 +11,22 @@
 				padding-top: 15px;
 				/*padding-bottom: 5px;*/
 			}
+
+			ul.options-list {
+				min-width: 400px;
+				max-width: 800px;
+				text-align: left;
+				font-size: 11pt;
+				list-style: none;
+			}
+			
+			li {
+				padding-top: 15px;
+			}
+
 		</style>
 
+		<script type="text/javascript" src="js/utils.js"></script>
 		<script type="text/javascript" src="js/common.js"></script>
 
 
@@ -26,30 +40,31 @@
 			<h1><span id="name"></span> v.<span id="version"></span></h1>
 
 			<br>
-			
-			<table>
-				<tr>
-					<td>
-						<input type="checkbox" class="option" option-id="enable_unread_count" />
-						<span>Show count of unread EACs on icon</span>
-					</td>
-				</tr>
 
-				<tr>
-					<td>
-						<input type="checkbox" class="option" option-id="enable_background_checks" />
-						<span>Check new EACs, even when the GMail is not opened</span>
-					</td>
-				</tr>
+			<ul class="options-list">
+				<li>
+					<input type="checkbox" class="option" option-id="enable_eac_processing" />
+					<span>Enable processing of EAC messages</span>
 
-				<tr>
-					<td>
-						<input type="checkbox" class="option" option-id="enable_move_to_trash" />
-						<span>Enable to move old EAC messages to trash when "update" or "delete" EAC-Method is handling</span>
-					</td>
-				</tr>
-			</table>
+					<ul class="options-list">
+						<li>
+							<input type="checkbox" class="option" option-id="enable_unread_count" />
+							<span>Show count of unread EACs on icon</span>
+						</li>
 
+						<li>
+							<input type="checkbox" class="option" option-id="enable_background_checks" />
+							<span>Check new EACs, even when the GMail is not opened</span>
+						</li>
+
+						<li>
+							<input type="checkbox" class="option" option-id="enable_move_to_trash" />
+							<span>Enable to move old EAC messages to trash when "update" or "delete" EAC-Method is handling</span>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		
 
 			<br><br><br>
 

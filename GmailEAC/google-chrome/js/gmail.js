@@ -759,7 +759,9 @@ var Gmail = (function() {
             })
 
             .then(function() {
-                if (! Extension.options.enable_background_checks) {
+                if (Extension.options.enable_eac_processing 
+                        && Extension.options.enable_background_checks == false) {
+                    
                     var eacProcessor = new EACProcessing(Gmail.Account.current());
                     Gmail.workers.checkEacs = eacProcessor.startWorker();
                 }
@@ -767,13 +769,24 @@ var Gmail = (function() {
 
                 Extension.onMessage.addListener(function(message) {
                     if (message == 'restartEacProcessing') {
+                        __.info('Restart EAC Processing');
+
                         if (Gmail.workers.checkEacs) Gmail.workers.checkEacs.stop();
                         
                         Extension
                             .getOptions()
 
                             .then(function(options) {
-                                if (options.enable_background_checks) return;
+                                if (options.enable_eac_processing == false) {
+                                    __.info('EAC Processing is disabled');
+                                    return;
+                                }
+
+                                if (options.enable_background_checks) {
+                                    __.info('EAC Processing works in background. No need to launch.');
+                                    return;
+                                }
+
                                 Gmail.workers.checkEacs = (new EACProcessing(Gmail.Account.current())).startWorker();
                             })
                     }

@@ -12,4 +12,5 @@ var intervalId = setInterval(function() {
 
 }, 100);
 
-Extension.debug = true;
+
+// Extension.debug = true;

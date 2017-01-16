@@ -1,7 +1,7 @@
-console.info('background.js imported');
+__.info('background.js imported');
 
-Extension.debug = true;
 Extension.isBackgroundPage = true;
+// Extension.debug = true;
 
 
 function fix_csp_response_headers(details, key, value) {
@@ -59,7 +59,13 @@ var Storage = MainDB.SimpleStorage('background_storage', null, function() {});
 Storage.init()
     .then(function() {
         Storage.setDefault(['accounts'], {});
-        Storage.setDefault(['options'], {});
+        
+        Storage.setDefault(['options'], {
+            'enable_eac_processing' : true,
+            'enable_unread_count' : true,
+            'enable_background_checks' : true,
+            'enable_move_to_trash' : true,
+        });
     })
 
     .then(function() {
@@ -168,7 +174,7 @@ var BackgroundMessaging = (function() {
 
 
 function onMessage(message, sender, sendResponse) {
-    console.info({message : message, sender : sender});
+    __.debug(message, sender);
 
     var action = Actions[message.action] || null;
     var res = action && action(message, sender);
@@ -210,7 +216,7 @@ chrome.runtime.onConnectExternal.addListener(onConnect);
 function refreshIcon() {
     var count = '';
 
-    if (Storage.options.enable_unread_count) {
+    if (Storage.options.enable_eac_processing && Storage.options.enable_unread_count) {
         count = Object
             .values(unreadCounts)
             .reduce(function(res, x) {
@@ -229,11 +235,16 @@ function refreshIcon() {
 
 
 function restartEacProcessing() {
-    console.log('Restart EACs Processing');
+    __.info('Restart EACs Processing');
 
     Extension.sendBroadcastMessage('restartEacProcessing');
 
     if (worker) worker.stop();
+
+    if (! Storage.options.enable_eac_processing) {
+        __.info('EAC Processing is disabled');
+        return;
+    }
 
     if (! Storage.options.enable_background_checks) {
         __.info('Background checks is disabled');

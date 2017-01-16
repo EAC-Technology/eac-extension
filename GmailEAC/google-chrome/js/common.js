@@ -311,21 +311,24 @@ Extension.init = function() {
 
     if (Extension.isContentScript()) {
         Extension.connect();
+        
+        this.heartBeatWorker = Utils.Promise.worker(function() {
+            return Extension
+                .checkConnection()
+                .then(function(status) {
+                    if (status == false) Extension.connect();
+                    return 20000;
+                })
+                .catch(function(err) {
+                    __.error(err);
+                    return Promise.resolve(20000);
+                })
+        });
     }
 
-
+    
     Extension.onMessage.addListener(function(message) {
         if (message == 'optionsModified') Extension.getOptions();
-    })
-
-
-    this.heartBeatWorker = Utils.Promise.worker(function() {
-        return Extension
-            .checkConnection()
-            .then(function(status) {
-                if (status == false) Extension.connect();
-                return 20000;
-            })
     })
 
 }
