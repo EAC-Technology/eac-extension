@@ -481,6 +481,22 @@ var Gmail = (function() {
             });
         }
 
+
+        // disable refresh if composer is active
+        var is_composer = window.location.toString().indexOf('compose=') >= 0;
+        if (is_composer) {
+            __.debug('Disable UI refresh, because Composer is active');
+            return false;
+        }
+
+        // disable refresh if filter-dialog is active
+        var is_filter = Boolean($('.ZZ:hover'));
+        if (is_filter) {
+            __.debug('Disable UI refresh, because Filter Dialog is active');
+            return false;
+        }
+
+
         // try to find button for current directory
         var res = click(`a[href="${window.location.toString()}"]`);
         if (res) return true;

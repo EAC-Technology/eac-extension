@@ -3,8 +3,8 @@
 
     "name"              : "EAC Plugin",
     
-    "version"           : "0.2.0.4",
-    "version_name"      : "0.2.0.4 alpha",
+    "version"           : "0.2.1.1",
+    "version_name"      : "0.2.1.1 alpha",
 
     "description"       : "The EAC Plugin enable your browser to support the technology Email Active Content developped by AppInMail in various WebMail client.",
     
@@ -23,7 +23,7 @@
         "background",
         "webRequest",
         "webRequestBlocking",
-        "*://*.google.com/*"
+        "*://mail.google.com/*"
     ],
 
     "background": {
