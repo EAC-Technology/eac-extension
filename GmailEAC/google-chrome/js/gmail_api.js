@@ -152,6 +152,19 @@ var GmailAPI = (function() {
                 return self.ajax.get(query);
             }
         };
+
+
+        this.feed = {
+            atom : function() {
+                return ajax
+                    .get(self.url + 'feed/atom/')
+                    
+                    .then(function(response) {
+                        return (new DOMParser()).parseFromString(response, 'text/xml');
+                    })
+            }
+        };
+
     }
 
 

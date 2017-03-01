@@ -31,22 +31,55 @@ var Utils = (function() {
 
 
 		SugarPromise.worker = function(func) {
-			function next() {
-				return Promise
-					.resolve(func())
-					.then(SugarPromise.delay)
-					.then(function() {
-						if (isRunning) return next();
-					});
-			}
-
 			var isRunning = true;
 			
 			function stop() {
 				isRunning = false;
 			}
+			
 
-			next();
+			var _lock = false;
+			
+			function next() {
+				if (!isRunning) return;
+				
+				if (_lock) return;
+				_lock = true;
+
+				return Promise
+					.resolve(func())
+					.then(SugarPromise.delay)
+					.then(function() {
+						_lock = false;
+					})
+			}
+
+			
+			var _intervalId = null;
+
+			function _mainloop() {
+				if (!isRunning) {
+					clearInterval(_intervalId);
+					return;
+				}
+
+				next();
+			}
+
+
+			// init Main Loop
+			
+			var t1 = Date.now();
+			
+			next().then(next).then(next) // execute 3 times then calculate average time
+				.then(function() { 
+					var tout = (Date.now() - t1) / 30.0;
+					tout = Math.max(tout, 50); 
+					tout = Math.min(tout, 500);
+					_intervalId = setInterval(_mainloop, tout);
+				})
+				
+
 			return {stop : stop, isRunning : isRunning};
 		}
 

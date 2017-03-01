@@ -21,6 +21,8 @@ var EACProcessing = (function() {
         }
 
         this.skipThreads = {};
+
+        this._lastMessageTs = null;
     }
 
 
@@ -32,10 +34,20 @@ var EACProcessing = (function() {
     }
 
 
+    EACProcessing.prototype.fetchPotentialEACThreads = function(limit) {
+        limit = limit || 100;
+
+        return this.gapi.threads.list({
+                search : 'query', 
+                q : 'label:(-trash) has:attachment filename:xml'
+            }, 0, limit);
+    }
+
+
     EACProcessing.prototype.fetchNewThreads = function() {
         var self = this;
 
-        var lastTs = this.storage.options.lastTs || (new Date(2016, 08, 01)).getTime(); // 2016-09-01
+        var lastTs = this.storage.options.lastMessageTs || (new Date(2016, 08, 01)).getTime(); // 2016-09-01
 
         var query = {
             search : 'query',
@@ -51,7 +63,7 @@ var EACProcessing = (function() {
 
             function stopIteration() {
                 if (result.length) {
-                    self.storage.setDefault(['options'], {}).lastTs = result[0].ts;
+                    self._lastMessageTs = result[0].ts;
                 }
 
                 resolve(result);
@@ -84,7 +96,7 @@ var EACProcessing = (function() {
                         if (!threadsCount) return stopIteration();
 
                         var isEnd = threads.every(function(t) {
-                            return t.ts < lastTs;
+                            return t.ts <= lastTs;
                         });
 
                         if (isEnd) return stopIteration();
@@ -93,7 +105,7 @@ var EACProcessing = (function() {
                             .sort(Utils.cmpByKey('ts'))
                             .reverse() //first - new messages
                             .filter(function(th) {
-                                return th.ts >= lastTs; // save messages that older lastTs
+                                return th.ts > lastTs; // save messages that older lastTs
                             });
 
                         result = result.concat(threads);
@@ -349,6 +361,58 @@ var EACProcessing = (function() {
     }
 
 
+
+    EACProcessing.prototype.isAtomFeedUpdated = function() {
+        __.debug('Check Atom Feed.');
+
+        var self = this;
+
+        return self.gapi.feed.atom()
+            .then(function(xml) {
+                var modified = xml.querySelector('modified').textContent;
+                var options = self.storage.setDefault(['options'], {});
+                var feedAtomDt = options.feedAtomDt || null
+                var result = (modified > feedAtomDt);
+                options.feedAtomDt = modified;
+                
+                return new Promise(function(resolve) {
+                    self.storage.save()
+                        .then(function() {
+                            resolve(result);
+                        });
+                });
+            });
+    }
+
+
+
+    EACProcessing.prototype.isTimeoutExpired = function(timeout) {
+        __.debug('Check Timeout.');
+
+        timeout = timeout || 600000; // 10 min
+
+        var options = this.storage.setDefault(['options'], {});
+        var lastCheckTs = options.lastCheckTs || null;
+        var result = (Date.now() > lastCheckTs + timeout); // 10 min
+       
+        return Promise.resolve(result);
+    }
+
+
+
+    EACProcessing.prototype.isNeedToRunEACProcessing = function() {
+        var self = this;
+
+        return this
+            .isTimeoutExpired()
+            
+            .then(function(res) {
+                return res || self.isAtomFeedUpdated();
+            })
+    }
+
+
+
     EACProcessing.prototype.run = function() {
         var self = this;
 
@@ -356,14 +420,63 @@ var EACProcessing = (function() {
             .init()
 
             .then(function() {
-                self.checkNewEacs();
+                return self.isNeedToRunEACProcessing();
+            })
+
+            .then(function(result) {
+                if (!result) {
+                    __.debug('Feed was not changed. No need to check new EACs.');
+                    return;
+                }
+                
+                return Promise.resolve()
+
+                    .then(function() {
+                        return self.checkNewEacs()
+                    })
+                    
+                    .then(function() {
+                        return self.checkUnreadEacs();
+                    })
+
+                    .then(function() {
+                        var options = self.storage.setDefault(['options'], {});
+                        
+                        options.lastCheckTs = Date.now();
+                        
+                        if (self._lastMessageTs)
+                            options.lastMessageTs = self._lastMessageTs;
+                        
+                        return self.storage.save();
+                    });
             })
             
-            .then(function() {
-                self.checkUnreadEacs();
-            });
+
     }
 
+
+
+    EACProcessing.prototype.integrityCheck = function() {
+        var self = this;
+
+        this
+            .fetchPotentialEACThreads()
+            .then(self.filterEacMessages)
+            .then(function(eacs) {
+                return eacs
+                    .filter(function(e) {
+                        return (e.eacToken in self.storage.eacs) == false;
+                    })
+            })
+            .then(function(eacs) {
+                if (!eacs.length) __.debug('Integrity Check is Ok');
+                __.debug('Integrity Check is Fail');
+                var options = self.storage.setDefault(['options'], {});
+                options.lastCheckTs = null;
+                options.lastMessageTs = null;
+                self.storage.save();
+            })
+    }
 
 
 
@@ -387,7 +500,7 @@ var EACProcessing = (function() {
 
                 .catch(function(err) {
                     __.error(err);
-                    return Promise.resolve(20000); // failover
+                    return Promise.resolve(120000); // failover 2 min
                 })
         })
     }

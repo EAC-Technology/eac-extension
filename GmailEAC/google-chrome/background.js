@@ -1,5 +1,6 @@
 __.info('background.js imported');
 
+
 Extension.isBackgroundPage = true;
 // Extension.debug = true;
 
@@ -268,7 +269,7 @@ function restartEacProcessing() {
 
             .catch(function(err) {
                 __.error(err);
-                return Promise.resolve(20000);
+                return Promise.resolve(120000); // 2 min
             })
     });
 }
