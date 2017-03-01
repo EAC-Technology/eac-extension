@@ -69,6 +69,45 @@ Storage.init()
         });
     })
 
+    // check integrity of account infos
+    .then(function() {
+        var accounts = Object.values(Storage.accounts);
+
+        __.debug('Check accounts infos', accounts);
+
+        return Utils.Promise
+            .map(function(account) {
+                var gapi = new GmailAPI(account);
+                
+                return gapi.feed.test()
+                    
+                    .then(function(res) {
+                        if (!res) {
+                            __.debug(account.email, 'Accout Info is wrong. Delete from storage.', account);
+                            delete Storage.accounts[account.email];
+                        }
+
+                        return res;
+                    })
+            }, accounts)
+
+        .then(function(results) {
+            if (results.some(function(x) {return x == false}))
+                return Storage.save();
+        })
+
+    })
+
+    // reset lastCheckTs
+    .then(function() {
+        var accounts = Object.values(Storage.accounts);
+        
+        return Utils.Promise
+            .map(function(account) {
+                return (new EACProcessing(account)).resetLastCheckTs();
+            }, accounts)
+    })
+
     .then(function() {
         restartEacProcessing();
     })
@@ -81,8 +120,21 @@ Storage.init()
 function Actions() {};
 
 Actions.setUnreadCount = function(message, sender) {
-    var key = getUserKey(message.url);
-    unreadCounts[key] = message.value;
+    var email = message.email || message.url; // for backwards compatibility
+    if (!email) return;
+
+    if (email.indexOf('/') > -1) {
+        var accounts = Object.values(Storage.accounts).filter(function(account) {
+            return account.url == email;
+        });
+
+        if (accounts.length) 
+            email = accounts[0].email;
+        else
+            return;
+    }
+
+    unreadCounts[email] = message.value;
 
     refreshIcon();    
     
@@ -105,10 +157,8 @@ Actions.getStats = function(message, sender) {
         .values(Storage.accounts)
 
         .map(function(account) {
-            var key = getUserKey(account.url);
-
             var res = Object.assign({}, account || {});
-            res.unreadCount = unreadCounts[key] || '';
+            res.unreadCount = unreadCounts[account.email] || '';
 
             ['userToken', 'actionToken'].forEach(function(key) {
                 delete res[key];

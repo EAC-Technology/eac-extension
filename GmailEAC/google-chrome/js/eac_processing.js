@@ -136,15 +136,15 @@ var EACProcessing = (function() {
 
 
     EACProcessing.prototype.fetchNewEacs = function() {
-        __.debug('Fetching new EACs..');
-
         var self = this;
+        
+        __.debug(self.account.email, 'Fetching new EACs..');
 
         return this
             .fetchNewThreads()
             .then(self.filterEacMessages)
             .then(function(eacs) {
-                __.debug('Founded eacs:', eacs);
+                __.debug(self.account.email, 'Founded eacs:', eacs);
 
                 return eacs.sort(Utils.cmpByKey('ts'));
             })
@@ -153,9 +153,9 @@ var EACProcessing = (function() {
 
 
     EACProcessing.prototype.processEacs = function(eacs) {
-        __.debug('Processing EACs..');
-
         var self = this;
+        
+        __.debug(self.account.email, 'Processing EACs..');
 
         return Utils.Promise
             .map(function(eac) {
@@ -223,14 +223,14 @@ var EACProcessing = (function() {
         var method = eac.eacMethod.toLowerCase();
         var token = eac.eacToken.toLowerCase();
 
-        __.debug('Process EAC:', token, '"', method, '"', eac.messageId);
+        __.debug(self.account.email, 'Process EAC:', token, '"', method, '"', eac.messageId);
 
         var messages = self.storage.setDefault(['eacs', token], {messages: {}, threads: {}}).messages;
 
-        __.debug('Messages for EAC ' + eac.eacToken, messages);
+        __.debug(self.account.email, 'Messages for EAC ' + eac.eacToken, messages);
 
         if (method != 'delete' && eac.messageId in messages) {
-            __.debug('This EAC was processed early. No need to do something.');
+            __.debug(self.account.email, 'This EAC was processed early. No need to do something.');
             return Promise.resolve(eac);
         }
 
@@ -266,13 +266,13 @@ var EACProcessing = (function() {
                     return Boolean(id);
                 });
 
-            __.debug('Deleting old EACs. Messages IDs:', ids);
+            __.debug(self.account.email, 'Deleting old EACs. Messages IDs:', ids);
 
             return Utils.Promise
                 .map(function(id) {
                     return moveMessageToTrashIfEnabled(id)
                         .then(function(res) {
-                            __.debug('Message', id, 'has deleted.');
+                            __.debug(self.account.email, 'Message', id, 'has deleted.');
                             delete messages[id];
                             return res;
                         })
@@ -308,9 +308,9 @@ var EACProcessing = (function() {
 
 
     EACProcessing.prototype.checkUnreadEacs = function() {
-        __.debug('Check unread EACs');
-        
         var self = this;
+        
+        __.debug(self.account.email, 'Check unread EACs');
 
         return this
             .fetchUnreadThreads()
@@ -336,16 +336,16 @@ var EACProcessing = (function() {
             })
 
             .then(function(messages) {
-                Extension.setUnreadCount(self.account.url, messages.length);
+                Extension.setUnreadCount(self.account.email, messages.length);
             });
 
     }
 
 
     EACProcessing.prototype.checkNewEacs = function() {
-        __.debug('Check new EACs worker.');
-
         var self = this;
+
+        __.debug(self.account.email, 'Check new EACs worker.');
 
         return this
             .fetchNewEacs()
@@ -363,9 +363,9 @@ var EACProcessing = (function() {
 
 
     EACProcessing.prototype.isAtomFeedUpdated = function() {
-        __.debug('Check Atom Feed.');
-
         var self = this;
+        
+        __.debug(self.account.email, 'Check Atom Feed.');
 
         return self.gapi.feed.atom()
             .then(function(xml) {
@@ -387,7 +387,9 @@ var EACProcessing = (function() {
 
 
     EACProcessing.prototype.isTimeoutExpired = function(timeout) {
-        __.debug('Check Timeout.');
+        var self = this;
+
+        __.debug(self.account.email, 'Check Timeout.');
 
         timeout = timeout || 600000; // 10 min
 
@@ -404,10 +406,10 @@ var EACProcessing = (function() {
         var self = this;
 
         return this
-            .isTimeoutExpired()
+            .isAtomFeedUpdated()
             
             .then(function(res) {
-                return res || self.isAtomFeedUpdated();
+                return res || self.isTimeoutExpired();
             })
     }
 
@@ -425,7 +427,7 @@ var EACProcessing = (function() {
 
             .then(function(result) {
                 if (!result) {
-                    __.debug('Feed was not changed. No need to check new EACs.');
+                    __.debug(self.account.email, 'Feed was not changed. No need to check new EACs.');
                     return;
                 }
                 
@@ -479,6 +481,20 @@ var EACProcessing = (function() {
     }
 
 
+    EACProcessing.prototype.resetLastCheckTs = function() {
+        var self = this;
+
+        return this
+            .init()
+            
+            .then(function() {
+                __.debug(self.account.email, 'Reset lastCheckTs');
+
+                self.storage.options.lastCheckTs = null;
+                return self.storage.save();
+            });
+    }
+
 
 
     EACProcessing.prototype.startWorker = function() {
@@ -489,6 +505,8 @@ var EACProcessing = (function() {
             return Utils.Promise.worker(function() {
                 return 300000; // 5 min
             })
+
+        this.resetLastCheckTs();
 
         return Utils.Promise.worker(function() {
             return self
