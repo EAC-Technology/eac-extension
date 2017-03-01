@@ -155,12 +155,34 @@ var GmailAPI = (function() {
 
 
         this.feed = {
-            atom : function() {
+            atom : function(label) {
+                label = label || '';
+                if (label.startsWith('/')) label = label.slice(1)
+
                 return ajax
-                    .get(self.url + 'feed/atom/')
+                    .get(self.url + 'feed/atom/' + label)
                     
                     .then(function(response) {
-                        return (new DOMParser()).parseFromString(response, 'text/xml');
+                        var xml = (new DOMParser()).parseFromString(response, 'text/xml');
+                        
+                        var title = xml.querySelector('title').textContent;
+                        var email = title.split(' ').slice(-1)[0];
+                        
+                        if (email != details.email) 
+                            throw('Invalid account info');
+
+                        return xml;                        
+                    })
+            },
+
+            test : function() {
+                return self.feed.atom()
+                    .then(function(xml) {
+                        return true;
+                    })
+
+                    .catch(function() {
+                        return false;
                     })
             }
         };
