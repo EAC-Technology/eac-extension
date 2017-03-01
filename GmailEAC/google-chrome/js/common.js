@@ -223,8 +223,8 @@ Extension.setBadgeText = function(text) {
     return Extension.sendMessage({action : 'setBadgeText', value : text});
 }
 
-Extension.setUnreadCount = function(url, value) {
-    return Extension.sendMessage({action : 'setUnreadCount', url : url, value : value});
+Extension.setUnreadCount = function(email, value) {
+    return Extension.sendMessage({action : 'setUnreadCount', email : email, value : value});
 }
 
 
