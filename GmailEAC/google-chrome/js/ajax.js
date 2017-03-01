@@ -4,7 +4,7 @@ var ajax = (function() {
 
 	Ajax.urlencodeParams = function(data) {
 		var params = Object.keys(data || {}).map(function(key) {
-			var values = data[key];
+			var values = data[key] || '';
 			if (values.map == undefined) values = [values];
 			
 			key = encodeURIComponent(key);
