@@ -5,6 +5,14 @@ function get_version() {
 	cat manifest.json | grep \"version\" | awk -F\" '{print $4}';
 }
 
+function update_version() {
+	cur_version=$(get_version);
+	python update_manifest.py -f manifest.json --version "$1";
+	echo
+	echo "$cur_version  -->  $(get_version)";
+	echo
+}
+
 
 new_version="$1";
 cur_version=$(get_version);
@@ -17,16 +25,19 @@ fi
 
 
 if [ "$new_version" \> "$cur_version" ]; then
-	python update_manifest.py -f manifest.json --version "$new_version";
-	echo
-	echo "old version: $cur_version";
-	echo "new version: $(get_version)";
-	echo
+	update_version "$new_version";
 	exit 0;
 
 else
 	echo
-	echo "Error: \"$new_version\" <= \"$cur_version\"";
+	echo "Attention: \"$new_version\" <= \"$cur_version\"";
+	read -p "Update manifest for version \"$new_version\"?  [Y/n] " a;
+
+	if [ -z "$a" -o "$a" = "y" -o "$a" = "Y" ]; then
+		update_version "$new_version";
+		exit 0;
+	fi
+
 	echo "Aborting.";
 	echo
 	exit 1;
