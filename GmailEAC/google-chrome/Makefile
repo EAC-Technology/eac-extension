@@ -23,6 +23,6 @@ dev: compile
 		rm manifest.json;
 
 
-install: release dev
+publish: release dev
 	-thunar build/;
 	-google-chrome "https://chrome.google.com/webstore/developer/dashboard?authuser=appinmail.dev";
