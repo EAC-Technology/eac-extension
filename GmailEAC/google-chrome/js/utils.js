@@ -100,8 +100,13 @@ var Utils = (function() {
 							result.push(value);
 							return;
 						})
+						.catch(function(err) {
+							__.error(err);
+							result.push(undefined);
+							return;
+						})
 						.then(Utils.Promise.delay)
-						.then(next);
+						.then(next)
 				}
 
 				next();

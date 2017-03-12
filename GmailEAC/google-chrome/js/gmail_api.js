@@ -4,11 +4,11 @@ var GmailAPI = (function() {
 
         details = details || {};
 
-        this.url = details.url;
+        this.url = details.url || '';
         if (this.url && this.url.slice(-1) != '/') this.url += '/';
 
-        this.userToken = details.userToken;
-        this.actionToken = details.actionToken;
+        this.userToken = details.userToken || '';
+        this.actionToken = details.actionToken || '';
 
         
         function ajax_call(method, query, data) {
