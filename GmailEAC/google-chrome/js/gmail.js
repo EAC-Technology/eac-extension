@@ -620,15 +620,23 @@ var Gmail = (function() {
             return;
         }
 
-        var listitem = __.$('div[role="listitem"]')[0];
-        var message = __.$('div.adn', listitem);
+        var messageDiv = __.$('div[role="listitem"]')
+            .map(function(elem) {
+                return __.$('div.adn', elem)[0];
+            })
 
-        if (!message.length) {
+            .filter(function(elem) {
+                return Boolean(elem);
+            })
+
+            [0];
+
+        if (!messageDiv) {
             __.error('Can\'t insert EACViewer, GMail UI elements not found!');
             return;
         }
 
-        var gmailContent = message[0].childNodes[1].childNodes[6];
+        var gmailContent = messageDiv.childNodes[1].childNodes[6];
         __.debug('Gmail Message Content Element: ', gmailContent);
 
         var eacviewer = document.createElement('div');
