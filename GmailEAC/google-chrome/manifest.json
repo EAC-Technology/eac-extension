@@ -45,5 +45,5 @@
         "matches": [ "*://mail.google.com/*" ]
     },
 
-    "web_accessible_resources"  : [ "injection.js", "icons/logo_16.png", "js/*" ]
+    "web_accessible_resources"  : [ "injection.js", "icons/*", "js/*" ]
 }

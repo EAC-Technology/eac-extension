@@ -611,6 +611,18 @@ var Gmail = (function() {
         return __.$('#appinmail-eac-viewer').length > 0;
     }
 
+    
+    Gmail.refreshEacViewer = function() {
+        var eacViewer = __.$('#appinmail-eac-viewer')[0];
+        if (!eacViewer) return;
+
+        var iframe = __.$('iframe', eacViewer)[0];
+        var url = iframe.src;
+
+        eacViewer.remove();
+        Gmail.insertEacViewer(url);
+    }
+
 
     Gmail.insertEacViewer = function(url) {
         __.info('Insert EAC Viewer into message content');
@@ -620,39 +632,56 @@ var Gmail = (function() {
             return;
         }
 
-        var messageDiv = __.$('div[role="listitem"]')
-            .map(function(elem) {
-                return __.$('div.adn', elem)[0];
-            })
+        var t1 = Date.now();
 
-            .filter(function(elem) {
-                return Boolean(elem);
-            })
+        // wait for Gmail UI is complete loaded
+        Utils.Promise.waitUntil(function() {
+            if (Date.now() - t1 > 10000) return true; // wait only 10 sec
+            return __.$('div[role="listitem"] div.adn').length > 0;
+        })
 
-            [0];
+        .then(function() {
+            var messageDiv = __.$('div[role="listitem"] div.adn')[0];
 
-        if (!messageDiv) {
-            __.error('Can\'t insert EACViewer, GMail UI elements not found!');
-            return;
-        }
+            if (!messageDiv) {
+                __.error('Can\'t insert EACViewer, GMail UI elements not found!');
+                return;
+            }
 
-        var gmailContent = messageDiv.childNodes[1].childNodes[6];
-        __.debug('Gmail Message Content Element: ', gmailContent);
+            var gmailContent = messageDiv.childNodes[1].childNodes[6];
+            __.debug('Gmail Message Content Element: ', gmailContent);
 
-        var eacviewer = document.createElement('div');
-        eacviewer.id = 'appinmail-eac-viewer';
-        eacviewer.innerHTML = `
-            <div style="font-size: 10pt">
-                <a href="http://appinmail.io/" target="_blank" style="text-decoration: none">
-                    <img src="${Extension.logoUrl}" alt="Appinmail"/>
-                    <span style="vertical-align: super; color: #9ca0a7;">Powered by EAC technology</span>
-                </a>
-            </div>
-            <iframe width=100% height=800px frameBorder="0px" src="${url}"></iframe>
-        `;
+            var eacviewer = document.createElement('div');
+            eacviewer.id = 'appinmail-eac-viewer';
+            eacviewer.innerHTML = `
+                <div style="font-size: 10pt; margin-bottom: 3px;">
+                    <a href="http://appinmail.io/" target="_blank" style="text-decoration: none">
+                        <img src="${Extension.logoUrl}" alt="EAC" style="vertical-align: middle;"/>
+                        <span style="color: #9ca0a7;">Powered by EAC technology</span>
+                    </a>
 
-        gmailContent.parentElement.insertBefore(eacviewer, gmailContent);
-        return gmailContent;
+                    <img id="appinmail-eac-refresh-button" src="${Extension.refreshIconUrl}" alt="Refresh" style="vertical-align: middle; margin-left:4px; cursor: pointer;">
+                </div>
+                <iframe width=100% height=800px frameBorder="0px" src="${url}"></iframe>
+            `;
+
+            gmailContent.parentElement.insertBefore(eacviewer, gmailContent);
+
+            var refreshButton = __.$('#appinmail-eac-refresh-button')[0];
+            if (refreshButton) {
+                refreshButton.onclick = function() {Gmail.refreshEacViewer();}
+                
+                // refreshButton.onmouseover = function() {
+                //     refreshButton.style.transform = 'rotate(90deg)';
+                // }
+                // refreshButton.onmouseout = function() {
+                //     refreshButton.style.transform = 'rotate(0deg)';
+                // }
+            }
+
+
+            return gmailContent;
+        })
     }
 
 
