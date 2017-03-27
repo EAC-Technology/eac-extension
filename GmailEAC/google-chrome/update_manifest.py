@@ -41,7 +41,7 @@ def create_composit_updater(options):
 
 	if options.version is not None:
 		updaters.append(create_updater('version', options.version.strip()))
-		updaters.append(create_updater('version_name', options.version.strip() + ' alpha'))
+		updaters.append(create_updater('version_name', options.version.strip() + ' beta'))
 
 	def wrapper(line):
 		for update in updaters:
