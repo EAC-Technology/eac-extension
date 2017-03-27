@@ -301,6 +301,8 @@ Extension.init = function() {
     }
 
     this.logoUrl = this.getURL('icons/logo_16.png');
+    this.eacLogoUrl = this.getURL('icons/eac_logo.png');
+    this.refreshIconUrl = this.getURL('icons/refresh.svg');
 
     this.EXTENSION_ID = this.EXTENSION_URL.split('/', 3).slice(-1)[0];
 
