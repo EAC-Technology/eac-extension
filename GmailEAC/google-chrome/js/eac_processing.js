@@ -29,7 +29,7 @@ var EACProcessing = (function() {
     EACProcessing.prototype.fetchUnreadThreads = function() {
         return this.gapi.threads.list({
                 search : 'query', 
-                q : 'label:unread has:attachment filename:xml'
+                q : 'to:me label:unread has:attachment filename:xml'
             }, 0, 100);
     }
 
@@ -39,7 +39,7 @@ var EACProcessing = (function() {
 
         return this.gapi.threads.list({
                 search : 'query', 
-                q : 'label:(-trash) has:attachment filename:xml'
+                q : 'to:me label:(-trash) has:attachment filename:xml'
             }, 0, limit);
     }
 
@@ -51,7 +51,7 @@ var EACProcessing = (function() {
 
         var query = {
             search : 'query',
-            q      : 'has:attachment label:(-trash) filename:xml',
+            q      : 'to:me has:attachment label:(-trash) filename:xml',
         };
 
         function fetch(offset) {
