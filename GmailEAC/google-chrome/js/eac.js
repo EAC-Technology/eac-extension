@@ -5,6 +5,8 @@ var EAC = (function() {
         this.messageId = null;
         this.ts = null;
         
+        this.recipients = EAC.parseRecipients(content);
+        
         this.eacToken = EAC.parseEacToken(content);
         this.eacMethod = EAC.parseEacMethod(content);
         this.eacViewerUrl = EAC.parseEacviewerUrl(content);
@@ -12,6 +14,15 @@ var EAC = (function() {
         this.serialize = function() {
             return EAC.serialize(this);
         }
+
+        this.checkRecipient = function(email) {
+            if (this.recipients === null) return true;
+            
+            return this.recipients.some(function(x) {
+                return x == email;
+            })
+        }
+
     };
 
 
@@ -23,6 +34,48 @@ var EAC = (function() {
         return Boolean(EAC.parseEacToken(content));
         // return Boolean(EAC.parseEacToken(content) && EAC.parseEacMethod(content));
     }
+
+
+    EAC.parseRecipients = function(content) {
+        if (!content) return null;
+
+        var re = /^To: (.*)$/gmi;
+        var lines = [];
+        
+        while (true) {
+            var res = re.exec(content);
+            if (res == null) break;
+            lines.push(res[1]);
+        }
+
+        var emails = lines
+            .map(function(l) {
+                return l.replace(/".*"/, '').split(',');
+            })
+
+            .reduce(function(res, arr) {
+                return res.concat(arr);
+            }, [])
+
+            .map(function(s) {
+                var m1 = /<(.+@.+)>/i.exec(s);
+                if (m1 !== null) return m1[1].trim();
+
+                var m2 = /(\S+@\S+)/i.exec(s);
+                if (m2 !== null) return m2[1].trim();
+
+                return null;
+            })
+
+            .filter(function(x) {
+                return Boolean(x);
+            })
+
+            .map(Gmail.normalizeEmailAddress)
+
+        return emails;
+    }
+
 
 
     EAC.parseEacviewerUrl = function parseEacviewerUrl(content) {
@@ -90,7 +143,7 @@ var EAC = (function() {
     EAC.serialize = function(eac) {
         var obj = Object.assign({}, eac);
 
-        ['sourceContent', 'serialize', 'processEacMethod'].forEach(function(key) {
+        ['sourceContent', 'serialize', 'processEacMethod', 'checkRecipient'].forEach(function(key) {
             delete obj[key];
         });
 

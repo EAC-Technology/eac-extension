@@ -14,6 +14,22 @@ var Gmail = (function() {
     function Gmail() {};
 
 
+    Gmail.normalizeEmailAddress = function(email) {
+        var parts = email.toLowerCase().split('@');
+        var name = parts[0], domain = parts[1];
+
+        name = name.split('+')[0];
+
+        if (domain == 'googlemail.com') 
+            domain = 'gmail.com'
+
+        if (domain == 'gmail.com')
+            name = name.replace('.', '');
+
+        return [name, domain].join('@');
+    }
+
+
     Gmail.Account = function(details) {
         var self = this;
 
@@ -91,7 +107,6 @@ var Gmail = (function() {
 
 
 
-
     Gmail.Message = function() {
         this.id = '';
         this.lastThreadMessageId = '';
@@ -161,7 +176,7 @@ var Gmail = (function() {
     
     Gmail.Message.parseFromThreadArray = function(arr) {
         var res = new Gmail.Message();
-        
+
         res.id          = arr[0];
         res.ts          = arr[16] / 1000;
         res.fromEmail   = arr[28];
@@ -240,8 +255,8 @@ var Gmail = (function() {
         return Gmail.apiInstance;
     }
 
-
-
+    
+    
 
     Gmail.threads = {};
 

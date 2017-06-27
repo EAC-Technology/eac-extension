@@ -4,6 +4,7 @@ var EACProcessing = (function() {
         var self = this;
 
         this.account = account;
+        this.normalizedAccountEmail = Gmail.normalizeEmailAddress(account.email);
         
         this.gapi = new GmailAPI(account);
         this.storage = {};
@@ -29,7 +30,7 @@ var EACProcessing = (function() {
     EACProcessing.prototype.fetchUnreadThreads = function() {
         return this.gapi.threads.list({
                 search : 'query', 
-                q : 'to:me label:unread has:attachment filename:xml'
+                q : 'label:unread has:attachment filename:xml'
             }, 0, 100);
     }
 
@@ -39,7 +40,7 @@ var EACProcessing = (function() {
 
         return this.gapi.threads.list({
                 search : 'query', 
-                q : 'to:me label:(-trash) has:attachment filename:xml'
+                q : 'label:(-trash) has:attachment filename:xml'
             }, 0, limit);
     }
 
@@ -51,7 +52,7 @@ var EACProcessing = (function() {
 
         var query = {
             search : 'query',
-            q      : 'to:me has:attachment label:(-trash) filename:xml',
+            q      : 'has:attachment label:(-trash) filename:xml',
         };
 
         function fetch(offset) {
@@ -224,6 +225,11 @@ var EACProcessing = (function() {
         var token = eac.eacToken.toLowerCase();
 
         __.debug(self.account.email, 'Process EAC:', token, '"', method, '"', eac.messageId);
+
+        if (eac.checkRecipient(self.normalizedAccountEmail) === false) {
+            __.debug(self.account.email, 'No need to process this EAC because there is no account\'s email into recipients list:', eac.recipients);
+            return Promise.resolve(eac);
+        }
 
         var messages = self.storage.setDefault(['eacs', token], {messages: {}, threads: {}}).messages;
 
