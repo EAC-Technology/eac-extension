@@ -43,6 +43,7 @@ chrome.webRequest.onHeadersReceived.addListener(
 var unreadCounts = {};
 var ports = {};
 var worker = null;
+var lastProcessingTs = Date.now();
 
 
 
@@ -314,6 +315,10 @@ function restartEacProcessing() {
             })
 
             .then(function() {
+                lastProcessingTs = Date.now();
+            })
+
+            .then(function() {
                 return 20000; // 20 sec
             })
 
@@ -324,6 +329,28 @@ function restartEacProcessing() {
     });
 }
 
+
+
+// Processing Watchdog
+setInterval(function() {
+    
+    try {
+        __.debug('Processing watchdog');
+
+        if (! Storage.options.enable_eac_processing) return;
+        if (! Storage.options.enable_background_checks) return;
+
+        if (Date.now() - lastProcessingTs > 300000) {
+            __.error('Processing watchdog - Background processing failed');
+            restartEacProcessing();
+        }
+        else {
+            __.debug('Processing watchdog - Background processing - ok')
+        }
+    }
+    catch(err) {};
+
+}, 120000);
 
 
 
