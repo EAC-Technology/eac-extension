@@ -3,8 +3,8 @@
 
     "name"              : "EAC Plugin Local",
     
-    "version"           : "1.0.0.10",
-    "version_name"      : "1.0.0.10 beta",
+    "version"           : "1.1.0.2",
+    "version_name"      : "1.1.0.2 beta",
 
     "description"       : "The EAC Plugin enable your browser to support the technology Email Active Content developped by AppInMail in various WebMail client.",
     
@@ -23,7 +23,8 @@
         "background",
         "webRequest",
         "webRequestBlocking",
-        "*://mail.google.com/*"
+        "tabs",
+        "*://*/*"
     ],
 
     "background": {
@@ -34,7 +35,11 @@
 
     "content_scripts"   : [
         {
-            "matches"   : [ "*://mail.google.com/*" ],
+            "matches"   : [ 
+                "*://mail.google.com/*", 
+                "*://outlook.live.com/*" 
+            ],
+            
             "js"        : [ "main.js" ]
         }
     ],
@@ -42,7 +47,10 @@
     "content_security_policy" : "default-src 'self'; img-src 'self' https://*.googleusercontent.com/; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.google.com https://*.googleapis.com; script-src 'self' https://apis.google.com; frame-src https://accounts.google.com https://*.googleapis.com",
 
     "externally_connectable": {
-        "matches": [ "*://mail.google.com/*" ]
+        "matches": [ 
+            "*://mail.google.com/*",
+            "*://outlook.live.com/*"
+        ]
     },
 
     "web_accessible_resources"  : [ "injection.js", "icons/*", "js/*" ]

@@ -40,14 +40,27 @@ inject_script({fileName : 'js/common.js'});
 
 inject_script({fileName : 'js/ajax.js'});
 
-inject_script({fileName : 'js/gmail_api.js'});
 
-inject_script({fileName : 'js/eac.js'});
+var currentHost = window.location.host.toLowerCase();
 
-inject_script({fileName : 'js/eac_processing.js'});
+if (currentHost === 'mail.google.com') {
+    inject_script({fileName : 'js/gmail_api.js'});
 
-inject_script({fileName : 'js/gmail.js'});
+    inject_script({fileName : 'js/eac.js'});
+
+    inject_script({fileName : 'js/eac_processing.js'});
+
+    inject_script({fileName : 'js/gmail.js'});
+}
 
 
-inject_script({fileName : 'injection.js'});
+if (currentHost === 'outlook.live.com') {
+    inject_script({fileName : 'js/outlook.js'});
+}
+
+
+console.log('EAC Plugin started');
+
+
+// inject_script({fileName : 'injection.js'});
 

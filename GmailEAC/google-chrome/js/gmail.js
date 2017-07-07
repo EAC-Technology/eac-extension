@@ -889,6 +889,9 @@ var Gmail = (function() {
     }
 
 
+    Gmail.init();
+
+
     return Gmail;
 
 })();
