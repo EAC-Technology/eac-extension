@@ -48,7 +48,7 @@ var EACProcessing = (function() {
     EACProcessing.prototype.fetchNewThreads = function() {
         var self = this;
 
-        var lastTs = this.storage.options.lastMessageTs || (new Date(2016, 08, 01)).getTime(); // 2016-09-01
+        var lastTs = this.storage.options.lastMessageTs || (new Date(2016, 8, 1)).getTime(); // 2016-09-01
 
         var query = {
             search : 'query',

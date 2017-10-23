@@ -37,7 +37,9 @@
         {
             "matches"   : [ 
                 "*://mail.google.com/*", 
-                "*://outlook.live.com/*" 
+                "*://outlook.live.com/*",
+                "*://outlook.office.com/*",
+                "*://outlook.office365.com/*" 
             ],
             
             "js"        : [ "main.js" ]
@@ -49,7 +51,10 @@
     "externally_connectable": {
         "matches": [ 
             "*://mail.google.com/*",
-            "*://outlook.live.com/*"
+            "*://outlook.live.com/*",
+            "*://outlook.office.com/*",
+            "*://outlook.office365.com/*",
+            "*://*.appinmail.io/*"
         ]
     },
 

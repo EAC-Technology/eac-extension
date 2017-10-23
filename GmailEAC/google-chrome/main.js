@@ -54,7 +54,7 @@ if (currentHost === 'mail.google.com') {
 }
 
 
-if (currentHost === 'outlook.live.com') {
+if (['outlook.live.com', 'outlook.office.com', 'outlook.office365.com'].indexOf(currentHost) > -1) {
     inject_script({fileName : 'js/outlook.js'});
 }
 

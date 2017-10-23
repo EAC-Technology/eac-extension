@@ -14,6 +14,8 @@ var Outlook = (function() {
 
     function Outlook() {};
 
+    Outlook.HOST = window.location.host;
+
 
     function _logger(method, isDebug) {
         return function() {
@@ -60,7 +62,7 @@ var Outlook = (function() {
         this.GetItem = function(messageId) {
             if (!messageId) return Promise.resolve(null);
 
-            var url = 'https://outlook.live.com/owa/service.svc?action=GetItem';
+            var url = `https://${Outlook.HOST}/owa/service.svc?action=GetItem`;
 
 
             var request = {
@@ -107,7 +109,7 @@ var Outlook = (function() {
         this.GetConversationItems = function(conversationId) {
             if (!conversationId) return Promise.resolve(null);
 
-            var url = 'https://outlook.live.com/owa/service.svc?action=GetConversationItems';
+            var url = `https://${Outlook.HOST}/owa/service.svc?action=GetConversationItems`;
 
             var request = {
                 '__type' : 'GetConversationItemsJsonRequest:#Exchange',

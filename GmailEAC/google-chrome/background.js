@@ -6,7 +6,6 @@ Extension.isBackgroundPage = true;
 
 
 function fix_csp_response_headers(details, key, value) {
-    
     for (var i = 0; i < details.responseHeaders.length; i++) {
         var isCSPHeader = /content-security-policy/i.test(details.responseHeaders[i].name);
         if (isCSPHeader) {
