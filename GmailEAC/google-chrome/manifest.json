@@ -23,7 +23,10 @@
         "background",
         "webRequest",
         "webRequestBlocking",
-        "tabs",
+        "declarativeContent"
+    ],
+
+    "optional_permissions" : [
         "*://*/*"
     ],
 
@@ -33,30 +36,19 @@
 
     "options_page"      : "options.html",
 
-    "content_scripts"   : [
-        {
-            "matches"   : [ 
-                "*://mail.google.com/*", 
-                "*://outlook.live.com/*",
-                "*://outlook.office.com/*",
-                "*://outlook.office365.com/*" 
-            ],
-            
-            "js"        : [ "main.js" ]
-        }
-    ],
-
     "content_security_policy" : "default-src 'self'; img-src 'self' https://*.googleusercontent.com/; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.google.com https://*.googleapis.com; script-src 'self' https://apis.google.com; frame-src https://accounts.google.com https://*.googleapis.com",
 
     "externally_connectable": {
         "matches": [ 
+            "*://*.appinmail.io/*",
+
             "*://mail.google.com/*",
+
             "*://outlook.live.com/*",
             "*://outlook.office.com/*",
-            "*://outlook.office365.com/*",
-            "*://*.appinmail.io/*"
+            "*://outlook.office365.com/*"
         ]
     },
 
-    "web_accessible_resources"  : [ "injection.js", "icons/*", "js/*" ]
+    "web_accessible_resources"  : [ "icons/*", "js/*" ]
 }

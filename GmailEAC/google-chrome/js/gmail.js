@@ -889,7 +889,9 @@ var Gmail = (function() {
     }
 
 
-    Gmail.init();
+
+    if (!Extension.isBackgroundPage)
+        Gmail.init();
 
 
     return Gmail;
