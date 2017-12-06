@@ -94,7 +94,7 @@ var EAC = (function() {
         var pchar = `${unreserved}%${sub_delims}:@`;
         var query = `${pchar}\\/\\?`;
 
-        var link = `(https?:\\/\\/a[a-z]+\\.appinmail\\.(io|pw|top)\\/u[rl]{0,2}\\?k[ey]{0,2}\\=[${query}]+)`;
+        var link = `(https?:\\/\\/a[a-z]+\\.appinmail\\.(io|email|top)\\/u[rl]{0,2}\\?k[ey]{0,2}\\=[${query}]+)`;
         var linkRe = RegExp(link, 'gi');
             
         var m = text.match(linkRe);

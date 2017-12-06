@@ -24,7 +24,7 @@ function fix_csp_response_headers(details, key, value) {
 chrome.webRequest.onHeadersReceived.addListener(
 	function(details) {
 		var url = details.url.toLowerCase();
-        fix_csp_response_headers(details, 'frame-src', '*.appinmail.io *.appinmail.pw *.appinmail.top');
+        fix_csp_response_headers(details, 'frame-src', '*.appinmail.io *.appinmail.email *.appinmail.top');
 
         return {responseHeaders: details.responseHeaders}
 	}, 

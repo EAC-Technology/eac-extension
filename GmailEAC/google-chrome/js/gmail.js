@@ -670,7 +670,7 @@ var Gmail = (function() {
             eacviewer.id = 'appinmail-eac-viewer';
             eacviewer.innerHTML = `
                 <div style="font-size: 10pt; margin-bottom: 3px;">
-                    <a href="http://appinmail.io/" target="_blank" style="text-decoration: none">
+                    <a href="http://appinmail.email/" target="_blank" style="text-decoration: none">
                         <img src="${Extension.logoUrl}" alt="EAC" style="vertical-align: middle;"/>
                         <span style="color: #9ca0a7;">Powered by EAC technology</span>
                     </a>
