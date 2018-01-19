@@ -19,22 +19,40 @@ function fix_csp_response_headers(details, key, value) {
 }
 
 
+function CSPProcessing(details) {
+    var url = details.url.toLowerCase();
+    fix_csp_response_headers(details, 'frame-src', '*.appinmail.io *.appinmail.pw *.appinmail.top');
 
-chrome.webRequest.onHeadersReceived.addListener(
-	function(details) {
-		var url = details.url.toLowerCase();
-        fix_csp_response_headers(details, 'frame-src', '*.appinmail.io *.appinmail.pw *.appinmail.top');
+    return {responseHeaders: details.responseHeaders}
+}
 
-        return {responseHeaders: details.responseHeaders}
-	}, 
-	
-	{
-		urls: ['https://mail.google.com/*'], 
-		types: ['main_frame'] 
-	}, 
 
-	['blocking', 'responseHeaders']
-);
+function restartCSPProcessing() {
+    __.info('Restart CSP Processing');
+
+    try {
+        if (chrome.webRequest.onHeadersReceived.hasListener(CSPProcessing)) {
+            chrome.webRequest.onHeadersReceived.removeListener(CSPProcessing);
+        }
+
+        chrome.webRequest.onHeadersReceived.addListener(
+            CSPProcessing,
+            
+            {
+                urls: ['https://mail.google.com/*'], 
+                types: ['main_frame'] 
+            }, 
+
+            ['blocking', 'responseHeaders']
+        );        
+    }
+    catch(err) {
+        __.error(err);
+    }
+}
+
+
+restartCSPProcessing();
 
 
 
@@ -195,6 +213,10 @@ Actions.checkConnection = function(message, sender) {
     return Boolean(ports[key] && ports[key][sender.tab.id]);
 }
 
+Actions.restartCSPProcessing = function(message, sender) {
+    restartCSPProcessing();
+    return true;
+}
 
 
 

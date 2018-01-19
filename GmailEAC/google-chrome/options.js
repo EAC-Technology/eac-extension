@@ -154,8 +154,10 @@ $$('input[type=checkbox][class=permission]').forEach(function(el) {
             chrome.permissions.request(permissions, function(granted) {
                 el.checked = granted;
 
-                if (granted)
+                if (granted) {
                     chrome.declarativeContent.onPageChanged.addRules([content_script]);
+                    Extension.sendMessage({action : 'restartCSPProcessing'});
+                }
             });
         }
 
