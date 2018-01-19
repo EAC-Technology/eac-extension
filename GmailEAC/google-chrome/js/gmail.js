@@ -663,7 +663,11 @@ var Gmail = (function() {
                 return;
             }
 
-            var gmailContent = messageDiv.childNodes[1].childNodes[6];
+            var gmailContent = __.$('div.ii.gt', messageDiv)[0];
+            if (!gmailContent) {
+                gmailContent = messageDiv.childNodes[1].childNodes[3];
+            }
+
             __.debug('Gmail Message Content Element: ', gmailContent);
 
             var eacviewer = document.createElement('div');
