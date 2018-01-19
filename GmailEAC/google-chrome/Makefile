@@ -26,3 +26,6 @@ dev: compile
 publish: release dev
 	-thunar build/;
 	-google-chrome "https://chrome.google.com/webstore/developer/dashboard?authuser=appinmail.dev";
+
+
+

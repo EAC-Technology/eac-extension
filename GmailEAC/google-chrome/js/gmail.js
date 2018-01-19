@@ -777,7 +777,8 @@ var Gmail = (function() {
                     && window.ajax
                     && window.MainDB
                     && window.EAC
-                    && window.EACProcessing;
+                    && window.EACProcessing
+                    && window.GLOBALS;
             })
 
             .then(function() {
@@ -889,8 +890,7 @@ var Gmail = (function() {
     }
 
 
-
-    if (!Extension.isBackgroundPage)
+    if (Extension.isContentScript())
         Gmail.init();
 
 

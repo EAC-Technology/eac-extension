@@ -356,7 +356,6 @@ Extension.needRefreshUI = function(account) {
 }
 
 
-
 Extension.init();
 
 

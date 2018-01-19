@@ -467,7 +467,8 @@ var Outlook = (function() {
 
 
 
-    Outlook.init();
+    if (Extension.isContentScript())
+        Outlook.init();
 
 
     return Outlook;    
