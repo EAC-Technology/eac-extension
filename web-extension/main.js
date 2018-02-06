@@ -55,9 +55,7 @@ function main() {
         'js/utils.js',
         'js/maindb.js',
         'js/common.js',
-        'js/ajax.js',
-
-        'js/test.js'
+        'js/ajax.js'
     ];
 
 
