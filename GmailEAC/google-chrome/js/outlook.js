@@ -233,6 +233,13 @@ var Outlook = (function() {
             this.insertEacViewer(url);
         }
 
+        this.scrollEacViewer = function() {
+            var eacViewer = this.getActiveEacViewer();
+            if (!eacViewer) return;
+
+            eacViewer.scrollIntoView();
+        }
+
 
         this.insertEacViewer = function(url) {
             if (!url) return;
@@ -284,6 +291,18 @@ var Outlook = (function() {
                 //     refreshButton.style.transform = 'rotate(0deg)';
                 // }
             }
+
+
+            Utils.Promise.waitUntil(function() {
+                return self.isEacViewerInserted();
+            })
+
+            .then(function() {
+                Outlook.UI.scrollEacViewer();
+            });
+
+
+
         }
 
 
