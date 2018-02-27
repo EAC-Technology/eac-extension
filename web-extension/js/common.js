@@ -241,13 +241,13 @@ Extension.getOptions = function() {
 }
 
 Extension.setOptions = function(options) {
-    Object.assign(Extension.options, options);
+    Object.assign(Extension.options, options || {});
     return Extension.sendMessage({action : 'updateExtensionOptions', value : options});
 }
 
 
 Extension.isContentScript = function() {
-    return Boolean(chrome.app.getDetails()) == false;
+    return Boolean(chrome.runtime.getManifest && chrome.runtime.getManifest()) == false;
 }
 
 

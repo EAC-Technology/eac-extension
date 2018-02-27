@@ -1,8 +1,8 @@
 var version = document.getElementById('version');
-if (version) version.innerText = chrome.app.getDetails().version_name;
+if (version) version.innerText = chrome.runtime.getManifest().version_name;
 
 var version = document.getElementById('name');
-if (version) version.innerText = chrome.app.getDetails().name;
+if (version) version.innerText = chrome.runtime.getManifest().name;
 
 
 
@@ -22,6 +22,7 @@ Extension
     .getOptions()
 
     .then(function(options) {
+        options = options || {};
         Object.keys(options).forEach(function(key) {
             var checkbox = $(`input[type=checkbox][option-id=${key}`);
             if (!checkbox) return;
