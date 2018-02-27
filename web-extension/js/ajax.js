@@ -20,8 +20,9 @@ var ajax = (function() {
 	}
 
 
-	Ajax.xhr = function(method, url) {
+	Ajax.xhr = function(method, url, withCredentials) {
 		var xhr = new XMLHttpRequest();
+		xhr.withCredentials = Boolean(withCredentials);
 		xhr.open(method, url, true);
 		return xhr;
 	}
@@ -42,7 +43,7 @@ var ajax = (function() {
 	}
 
 
-	Ajax.get = function(url, data) {
+	Ajax.get = function(url, data, withCredentials) {
 		if (data) {
 			if (url.indexOf('?') < 0) 
 				url += '?';
@@ -52,17 +53,19 @@ var ajax = (function() {
 			url += Ajax.urlencodeParams(data);
 		}
 
-		var xhr = Ajax.xhr('GET', url);
+		var xhr = Ajax.xhr('GET', url, withCredentials);
 		return Ajax.call(xhr);
 	}
 
 		
-	Ajax.post = function(url, data) {
-		var xhr = Ajax.xhr('POST', url);
+	Ajax.post = function(url, data, withCredentials) {
+		var xhr = Ajax.xhr('POST', url, withCredentials);
 		xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 		data = (data) ? Ajax.urlencodeParams(data) : null;
 		return Ajax.call(xhr, data);
 	}
+
+
 	
 
 	return Ajax;

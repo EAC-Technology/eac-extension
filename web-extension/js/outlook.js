@@ -201,7 +201,7 @@ var Outlook = (function() {
         }
 
         this.getActiveMessageHeader = function() {
-            return findActiveElement('div[role="heading"][aria-label]');
+            return findActiveElement('div[role="heading"][aria-level="3"]');
         }
 
         this.getActiveMessageBody = function() {
@@ -269,11 +269,10 @@ var Outlook = (function() {
             var placeholder = messageBody;
 
             var messageHeader = this.getActiveMessageHeader();
-            if (Boolean(messageHeader)) {
-                placeholder = $$('div[role=region][aria-label]', messageHeader)[0] || null;
-                placeholder = (placeholder && placeholder.nextElementSibling && placeholder.nextElementSibling.firstElementChild) || messageBody;
-            }
 
+            if (Boolean(messageHeader)) {
+                placeholder = messageHeader.nextElementSibling;
+            }
 
             placeholder.parentElement.insertBefore(eacviewer, placeholder);
 
@@ -429,17 +428,11 @@ var Outlook = (function() {
             return this
                 .getContent(messageId)
 
-                .then(function(content) {
-                    if (!parseHeader(content, 'EAC-Token')) return null;
-                    if (!parseHeader(content, 'EAC-Method')) return null;
+                .then(EAC.parse)
 
-                    return parseHeader(content, 'EAC-URL') || Outlook.Message.parseEacViewerUrl(content) || null;
-                })
-
-                .then(function(url) {
-                    _debug('Message:', messageId, 'Eac Url:', url);
-                    if (url) _info('EAC Message detected!');
-                    return url;
+                .then(function(eac) {
+                    if (!eac) return null;
+                    return eac.getEacViewerUrl();
                 })
         }
 

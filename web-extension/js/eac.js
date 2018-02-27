@@ -1,19 +1,35 @@
 var EAC = (function() {
+
+    function parseSMTPHeader(content, key) {
+        if (!content) return null;
+        var re = RegExp(`${key}:\\s+(\\S+)`, 'gi');
+        var m = re.exec(content);
+        return (m && m.length && m[1]) || null;
+    }
+
     function EAC(content) {
         this.sourceContent = content;
         
         this.messageId = null;
         this.ts = null;
         
-        this.recipients = EAC.parseRecipients(content);
+        this.rawRecipients = EAC.parseRecipients(content);
+        this.recipients = this.rawRecipients;
+
+        if (window.Gmail && Gmail.normalizeEmailAddress)
+            this.recipients = this.rawRecipients.map(Gmail.normalizeEmailAddress);
         
         this.eacToken = EAC.parseEacToken(content);
         this.eacMethod = EAC.parseEacMethod(content);
         this.eacViewerUrl = EAC.parseEacviewerUrl(content);
 
+        this.eacWholeXml = EAC.parseWholeXml(content);
+
+
         this.serialize = function() {
             return EAC.serialize(this);
         }
+
 
         this.checkRecipient = function(email) {
             if (this.recipients === null) return true;
@@ -22,6 +38,57 @@ var EAC = (function() {
                 return x == email;
             })
         }
+
+
+        this.pushToEacViewer = function(eacviewerUrl, userEmail) {
+            var self = this;
+
+            eacviewerUrl = eacviewerUrl || 'https://eacviewer.appinmail.io';
+            if (eacviewerUrl.endsWith('/')) eacviewerUrl = eacviewerUrl.slice(0, -1);
+
+            userEmail = userEmail || self.rawRecipients[0];
+
+            var pushUrl = eacviewerUrl + '/push_wholexml';
+
+            return ajax
+                .post(pushUrl, {'wholexml' : this.eacWholeXml}, true)
+
+                .then(function(resp) {
+                    var data = JSON.parse(resp);
+
+                    if (data[0] !== 'success') {
+                        throw(data[1]);
+                    }
+
+                    var params = data[1];
+
+                    params['eac_token'] = self.eacToken;
+                    params['email'] = userEmail;
+
+                    return eacviewerUrl + '/eacviewer?' + ajax.urlencodeParams(params);
+                });
+        }
+
+
+        this.getEacViewerUrl = function() {
+            var self = this;
+
+            var eacXmlSize = (self.eacWholeXml || '').length || 0;
+
+            var urlFromHeader = parseSMTPHeader(self.sourceContent, 'EAC-URL');
+            if (urlFromHeader && eacXmlSize < 30000)
+                return Promise.resolve(urlFromHeader);
+
+            return self
+                .pushToEacViewer()
+                .then(function(url) {
+                    return url;
+                })
+                .catch(function() {
+                    return EAC.parseEacviewerUrl(self.sourceContent);
+                })
+        }
+
 
     };
 
@@ -71,8 +138,6 @@ var EAC = (function() {
                 return Boolean(x);
             })
 
-            .map(Gmail.normalizeEmailAddress)
-
         return emails;
     }
 
@@ -80,6 +145,9 @@ var EAC = (function() {
 
     EAC.parseEacviewerUrl = function parseEacviewerUrl(content) {
         if (!content) return null;
+
+        var url = parseSMTPHeader(content, 'EAC-URL')
+        if (url) return url;
 
         // RFC 1341 (MIME)
         // var text = content.replace(/=(?:\r\n|\n\r)/g, '').replace(/=([0-9A-F]{2})/g, function(x, p) {
@@ -121,18 +189,70 @@ var EAC = (function() {
 
     
     EAC.parseEacToken = function parseEacToken(content) {
-        if (!content) return null;
-
-        var re = /EAC-Token:\s+(\S+)/gi;
-        var m = re.exec(content);
-        return (m && m.length > 0) ? m[1] : '';
+        return parseSMTPHeader(content, 'EAC-Token') || '';
     }
 
     EAC.parseEacMethod = function parseEacMethod(content) {
-        var re = /EAC-Method:\s+(\S+)/gi;
-        var m = re.exec(content);
-        return (m && m.length > 0) ? m[1] : '';
+        return parseSMTPHeader(content, 'EAC-Method') || '';
     }
+
+
+    EAC.parseWholeXml = function(content) {
+        // split multiparts
+        var m = content.match(/Content-Type: multipart\/(?:mixed|related);\s*boundary=(.+\S)/gi);
+        if (!m) return '';
+
+        var boundary = m[0].match(/boundary="(.+\S)"/i)[1];
+
+        var multiparts = content
+            .split(`--${boundary}--`, 1)[0]
+            .split(`--${boundary}`)
+            .map(function(x) {
+                return x.trim();
+            });
+
+        // find WholXml part
+        var wholexmlPart = multiparts
+            .filter(function(part) {
+                return /Content-Type:\s+text\/wholexml/gi.test(part);
+            })[0];
+
+        if (!wholexmlPart) return '';
+
+        // skip headers
+        var b64content = wholexmlPart
+            .split('\n')
+
+            .reduce(function(res, l) {
+                if (res[0]) {
+                    res.push(l);
+                    return res;
+                }
+
+                if (l.trim() === '')
+                    return [true]
+
+                return [false]
+            }, [false])
+
+            .slice(1)
+
+            .join('\n')
+
+        // try to decode file content
+        try {
+            return atob(b64content);
+        }
+        catch(err) {
+            return b64content;
+        }
+    }
+
+
+
+
+
+
 
     EAC.parse = function(content) {
         if (EAC.isEacMessage(content)) 
@@ -143,7 +263,16 @@ var EAC = (function() {
     EAC.serialize = function(eac) {
         var obj = Object.assign({}, eac);
 
-        ['sourceContent', 'serialize', 'processEacMethod', 'checkRecipient'].forEach(function(key) {
+        [
+            'sourceContent',
+            'serialize',
+            'processEacMethod',
+            'checkRecipient',
+            'eacWholeXml',
+            'pushToEacViewer',
+            'getEacViewerUrl'
+
+        ].forEach(function(key) {
             delete obj[key];
         });
 

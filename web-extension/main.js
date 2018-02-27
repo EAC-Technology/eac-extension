@@ -55,7 +55,8 @@ function main() {
         'js/utils.js',
         'js/maindb.js',
         'js/common.js',
-        'js/ajax.js'
+        'js/ajax.js',
+        'js/eac.js'
     ];
 
 
@@ -64,7 +65,6 @@ function main() {
     if (currentHost === 'mail.google.com') {
         requirements = requirements.concat([
             'js/gmail_api.js',
-            'js/eac.js',
             'js/eac_processing.js',
             'js/gmail.js'
         ]);

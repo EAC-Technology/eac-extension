@@ -264,32 +264,6 @@ var Gmail = (function() {
 
     Gmail.fetchThreads = function(params, offset, limit) {
         return Gmail.api().threads.list(params, offset, limit);
-
-        // offset = offset || 0;
-        // limit = limit || 20;
-
-        // var url = Gmail.absUrl(`?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=tl&start=${offset}&num=${limit}&rt=j`);
-        
-        // return ajax.get(url, params)
-        //     .then(function(resp) {
-        //         var data = JSON.parse(resp.slice(5));
-            
-        //         data = data[0].filter(function(x) {
-        //             return x[0] == 'tb';
-        //         });
-
-        //         var threads = data.reduce(function(arr, x) {
-        //             return arr.concat(x[2]);
-        //         }, []);
-
-        //         return threads;
-        //     })
-
-        //     .then(function(threads) {
-        //         threads = threads.map(Gmail.Message.parse);
-        //         __.debug('Gmail Feed Threads:\n', threads);
-        //         return threads;
-        //     });
     }
 
 
@@ -333,63 +307,26 @@ var Gmail = (function() {
 
     Gmail.getThreadMessages = function(threadId) {
         return Gmail.api().threads.get(threadId);
-
-        // var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&rt=j&view=cv&search=trash&th=${threadId}&type=${threadId}`;
-        // var url = Gmail.absUrl(query);
-        
-        // return ajax.get(url)
-            
-        //     .then(function(resp) {
-        //         var data = JSON.parse(resp.slice(5));
-                
-        //         return data[0].filter(function(x) {
-        //             return x[0] == 'ms';
-        //         })
-        //     })
-
-        //     .then(function(rawMessages) {
-        //         return rawMessages.filter(function(arr) {
-        //             return arr[9].indexOf('^k') < 0;
-        //         });
-        //     })
-            
-        //     .then(function(rawMessages) {
-        //         return rawMessages
-        //             .map(Gmail.Message.parse)
-        //             .sort(Utils.cmpByKey('ts'));
-        //     });
     }
 
 
 
     Gmail.trashThread = function(threadId) {
         return Gmail.api().threads.trash(threadId);
-        // var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=up&act=tr&rt=j&search=all&t=${threadId}`;
-        // var url = Gmail.absUrl(query);
-        // return ajax.get(url);
     }
 
 
     Gmail.untrashThread = function(threadId) {
         return Gmail.api().threads.untrash(threadId);
-        // var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=up&act=ib&rt=j&search=trash&t=${threadId}`;
-        // var url = Gmail.absUrl(query);
-        // return ajax.get(url);
     }
 
     Gmail.trashMessage = function(messageId) {
         __.debug('Trash message', messageId);
         return Gmail.api().messages.trash(messageId);
-        // var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=up&act=dm&rt=j&search=all&m=${messageId}`;
-        // var url = Gmail.absUrl(query);
-        // return ajax.get(url);
     }
 
     Gmail.untrashMessage = function(messageId) {
         return Gmail.api().messages.untrash(messageId);
-        // var query = `?ui=2&ik=${Gmail.userToken()}&at=${Gmail.actionToken()}&view=up&act=ib&rt=j&search=trash&m=${messageId}`;
-        // var url = Gmail.absUrl(query);
-        // return ajax.get(url);
     }
 
 
@@ -584,34 +521,6 @@ var Gmail = (function() {
     Gmail.getMessageSource = function(messageId) {
         messageId = messageId || Gmail.originalMessageId();
         return Gmail.api().messages.get(messageId);
-        
-        // var url = Gmail.messageUrl(messageId);
-        // if (!url) return Promise.resolve('');
-
-        // var CONTENT_START = '<pre class="raw_message_text" id="raw_message_text">';
-        
-        // return ajax.get(url)
-        //     .then(function(content) {
-        //         var i = content.indexOf(CONTENT_START) + CONTENT_START.length;
-        //         var j = content.indexOf('</pre>', i);
-        //         content = content.slice(i, j);
-
-        //         var pre = document.createElement('pre');
-        //         pre.innerHTML = content;
-        //         content = pre.innerText;
-
-        //         var lines = content.split('\n');
-        //         content = lines
-        //             .map(function(l) {
-        //                 if (l.length == 76 && l.endsWith('='))
-        //                     return l.slice(0, -1);
-        //                 return l + '\n';
-        //             })
-
-        //             .join('');
-
-        //         return content;
-        //     });
     }
 
 
@@ -684,9 +593,8 @@ var Gmail = (function() {
                     if (timeElapsed(10)) return true; // wait only 10 sec
                     return __.$('div[role="listitem"] div.adn').length > 0;
                 })
-
-
             })
+
 
             // insert EAC Viewer
             .then(function() {
@@ -748,22 +656,16 @@ var Gmail = (function() {
 
 
 
+    Gmail.runEAC = function(eac) {
+        return eac
+            .getEacViewerUrl()
 
-    Gmail.splitMultiparts = function(content) {
-        var m = content.match(/Content-Type: multipart\/mixed; boundary=(.+\S)/gi);
-        if (!m) return [];
-
-        var boundary = m[0].match(/boundary=(.+\S)/i)[1];
-
-        content = content.split(`--${boundary}--`, 1)[0];
-        var res = content.split(`--${boundary}`);
-
-        res = res.map(function(x) {
-            return x.trim();
-        });
-        
-        return res;
+            .then(function(url) {
+                __.debug('EAC Viewer URL:', url);
+                return Gmail.insertEacViewer(url);
+            })
     }
+
 
 
 
@@ -792,20 +694,17 @@ var Gmail = (function() {
         Gmail
             .getMessageContent()
             
-            .then(function(resp) {
-                __.debug('Message Source Content:\n\n', resp);
+            .then(function(content) {
+                __.debug('Message Source Content:\n\n', content);
 
-                if (!EAC.isEacMessage(resp)) {
+                var eac = EAC.parse(content);
+                if (!eac) {
                     __.debug('It is not EAC message!');
                     return;
                 }
 
                 __.info('EAC content detected!');
-
-                var url = EAC.parseEacviewerUrl(resp);
-                __.debug('EAC Viewer URL:', url);
-
-                Gmail.insertEacViewer(url);
+                return Gmail.runEAC(eac);
             });
     }
 
