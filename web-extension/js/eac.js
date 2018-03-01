@@ -75,20 +75,13 @@ var EAC = (function() {
 
             var eacXmlSize = (self.eacWholeXml || '').length || 0;
 
-            var urlFromHeader = parseSMTPHeader(self.sourceContent, 'EAC-URL');
+            var urlFromHeader = parseSMTPHeader(self.sourceContent, 'EAC-URL') || EAC.parseEacviewerUrl(self.sourceContent);
+
             if (urlFromHeader && eacXmlSize < 30000)
                 return Promise.resolve(urlFromHeader);
 
-            return self
-                .pushToEacViewer()
-                .then(function(url) {
-                    return url;
-                })
-                .catch(function() {
-                    return EAC.parseEacviewerUrl(self.sourceContent);
-                })
+            return self.pushToEacViewer()
         }
-
 
     };
 
