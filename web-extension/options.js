@@ -132,42 +132,41 @@ var PERMISSIONS = {
 $$('input[type=checkbox][class=permission]').forEach(function(el) {
     var key = el.attributes['permission-id'].value;
 
+    if (!PERMISSIONS[key]) {
+        el.disabled = true;
+        return;
+    }
+
     var permissions = PERMISSIONS[key].permissions;
     var content_script = PERMISSIONS[key].content_script;
 
-    if (!permissions) return;
 
-    chrome.permissions.contains(permissions, function(granted) {
-        el.checked = granted;
-
-        if (granted) {
-            chrome.declarativeContent.onPageChanged.getRules([content_script.id], function(details) {
-                if (!details.length) {
-                    chrome.declarativeContent.onPageChanged.addRules([content_script]);
-                }
-            })
-        }
+    chrome.permissions.contains(permissions, granted => {
+        chrome.declarativeContent.onPageChanged.getRules([content_script.id], rules => {
+            el.checked = granted && (rules.length > 0);
+        })
     })
 
 
     el.addEventListener('click', function() {
         if (el.checked) {
-            chrome.permissions.request(permissions, function(granted) {
-                el.checked = granted;
-
+            chrome.permissions.request(permissions, granted => {
                 if (granted) {
-                    chrome.declarativeContent.onPageChanged.addRules([content_script]);
+                    chrome.declarativeContent.onPageChanged.addRules([content_script], rules => {
+                        el.checked = granted && (rules.length > 0);
+                    });
+
                     Extension.sendMessage({action : 'restartCSPProcessing'});
                 }
             });
         }
-
         else {
-            chrome.permissions.remove(permissions, function(removed) {
-                el.checked = !removed;
-
-                if (removed)
-                    chrome.declarativeContent.onPageChanged.removeRules([content_script.id]);
+            chrome.permissions.remove(permissions, removed => {
+                chrome.declarativeContent.onPageChanged.removeRules([content_script.id], () => {
+                    chrome.declarativeContent.onPageChanged.getRules([content_script.id], rules => {
+                        el.checked = !removed || (rules.length > 0);
+                    });
+                });
             });
         }
     });

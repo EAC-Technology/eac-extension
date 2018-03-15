@@ -376,11 +376,21 @@ setInterval(function() {
 
 
 
-chrome.runtime.onInstalled.addListener(function() {
+chrome.runtime.onInstalled.addListener(details => {
     chrome.permissions.getAll(function(permissions) {
-        if (permissions.origins.length == 0)
-            chrome.tabs.create({url: "options.html"});
-    })
+        chrome.declarativeContent.onPageChanged.getRules(null, rules => {
+            if (permissions.origins.length == 0 || rules.length == 0) {
+                chrome.tabs.create({url: "options.html"});
+            }
+        })
+    });
+
+
+    chrome.declarativeContent.onPageChanged.getRules(null, rules => {
+        chrome.declarativeContent.onPageChanged.removeRules(null, () => {
+            chrome.declarativeContent.onPageChanged.addRules(rules);
+        })
+    });
 });
 
 
