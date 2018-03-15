@@ -623,11 +623,35 @@ var Gmail = (function() {
 
                         <img id="appinmail-eac-refresh-button" src="${Extension.refreshIconUrl}" alt="Refresh" style="vertical-align: middle; margin-left:4px; cursor: pointer;">
                     </div>
-                    <iframe width=100% height=800px frameBorder="0px" src="${url}"></iframe>
+
+                    <iframe width="100%" height="800px" frameBorder="0px" src="${url}"></iframe>
                 `;
 
-
                 gmailContent.parentElement.insertBefore(eacviewer, gmailContent);
+
+                // var iframe = document.createElement('iframe');
+                // iframe.width = '100%';
+                // iframe.height = '800px';
+                // iframe.frameBorder = "0px";
+                // iframe.src = url;
+
+                // iframe.onload = function() {
+                //     function listener(message) {
+                //         window.removeEventListener('message', listener);
+
+                //         console.log(message);
+
+                //         if (message.data.height)
+                //             iframe.height = message.data.height;
+                //     }
+
+                //     window.addEventListener('message', listener);
+                //     console.log('postMessage');
+                //     iframe.contentWindow.postMessage({action: 'get_document_height', origin : window.location.origin}, '*');
+                // }
+
+                // eacviewer.append(iframe);
+
 
                 var refreshButton = __.$('#appinmail-eac-refresh-button')[0];
                 if (refreshButton) {
@@ -646,7 +670,10 @@ var Gmail = (function() {
                     return Gmail.isEacViewerInserted(url);
                 })
 
-                .then(Gmail.scrollEacViewer)
+                .then(() => {
+                    gmailContent.style.display = 'none';
+                    Gmail.scrollEacViewer();
+                })
 
 
 
