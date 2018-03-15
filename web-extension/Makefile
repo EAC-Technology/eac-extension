@@ -28,4 +28,8 @@ publish: release dev
 	-google-chrome "https://chrome.google.com/webstore/developer/dashboard?authuser=appinmail.dev";
 
 
+pack-crx:
+	cd .. &&\
+	google-chrome --pack-extension=web-extension --pack-extension-key=eac-plugin-key.pem &&\
+	mv web-extension.crx web-extension/build/eac-plugin.crx
 
