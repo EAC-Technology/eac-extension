@@ -14,17 +14,48 @@ function fix_csp_response_headers(details, key, value) {
             details.responseHeaders[i].value = csp;
         }
     }
-    
+
     return {responseHeaders: details.responseHeaders};
 }
 
 
 function CSPProcessing(details) {
+    console.log(details);
     var url = details.url.toLowerCase();
     fix_csp_response_headers(details, 'frame-src', '*.appinmail.io *.appinmail.pw *.appinmail.top');
 
     return {responseHeaders: details.responseHeaders}
 }
+
+
+
+var options = {
+    urls: ['https://mail.google.com/*'],
+    types: ['main_frame']
+}
+
+var handler = (name) => (x) => console.log(name, x);
+
+
+chrome.webRequest.handlerBehaviorChanged(console.log)
+
+
+// chrome.webRequest.onBeforeRequest.addListener(x => {
+//         return {url: x.url + Math.random()}
+//     },
+
+//     options,
+//     ['blocking']
+// );
+
+chrome.webRequest.onBeforeSendHeaders.addListener(handler('send headers'), options);
+
+chrome.webRequest.onHeadersReceived.addListener(handler('headers'), options);
+
+chrome.webRequest.onCompleted.addListener(handler('complete'), options);
+
+
+chrome.webRequest.onResponseStarted.addListener(handler('response'), options);
 
 
 function restartCSPProcessing() {
@@ -37,14 +68,14 @@ function restartCSPProcessing() {
 
         chrome.webRequest.onHeadersReceived.addListener(
             CSPProcessing,
-            
+
             {
-                urls: ['https://mail.google.com/*'], 
-                types: ['main_frame'] 
-            }, 
+                urls: ['https://mail.google.com/*'],
+                types: ['main_frame']
+            },
 
             ['blocking', 'responseHeaders']
-        );        
+        );
     }
     catch(err) {
         __.error(err);
@@ -78,7 +109,7 @@ var Storage = MainDB.SimpleStorage('background_storage', null, function() {});
 Storage.init()
     .then(function() {
         Storage.setDefault(['accounts'], {});
-        
+
         Storage.setDefault(['options'], {
             'enable_eac_processing' : true,
             'enable_unread_count' : true,
@@ -96,9 +127,9 @@ Storage.init()
         return Utils.Promise
             .map(function(account) {
                 var gapi = new GmailAPI(account);
-                
+
                 return gapi.feed.test()
-                    
+
                     .then(function(res) {
                         if (!res) {
                             __.debug(account.email, 'Accout Info is wrong. Delete from storage.', account);
@@ -119,7 +150,7 @@ Storage.init()
     // reset lastCheckTs
     .then(function() {
         var accounts = Object.values(Storage.accounts);
-        
+
         return Utils.Promise
             .map(function(account) {
                 return (new EACProcessing(account)).resetLastCheckTs();
@@ -146,7 +177,7 @@ Actions.setUnreadCount = function(message, sender) {
             return account.url == email;
         });
 
-        if (accounts.length) 
+        if (accounts.length)
             email = accounts[0].email;
         else
             return;
@@ -154,8 +185,8 @@ Actions.setUnreadCount = function(message, sender) {
 
     unreadCounts[email] = message.value;
 
-    refreshIcon();    
-    
+    refreshIcon();
+
     return true;
 }
 
@@ -197,9 +228,9 @@ Actions.getExtensionOptions = function(message, sender) {
 
 Actions.updateExtensionOptions = function(message, sender) {
     Object.assign(Storage.options, message.value);
-    
+
     Extension.sendBroadcastMessage('optionsModified');
-    
+
     Storage.save();
 
     refreshIcon();
@@ -327,7 +358,7 @@ function restartEacProcessing() {
     worker = Utils.Promise.worker(function() {
         return Extension
             .getOptions()
-            
+
             .then(function() {
                 return Utils.Promise
                     .map(function(account) {
@@ -354,7 +385,7 @@ function restartEacProcessing() {
 
 // Processing Watchdog
 setInterval(function() {
-    
+
     try {
         __.debug('Processing watchdog');
 

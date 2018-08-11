@@ -14,13 +14,18 @@ var Gmail = (function() {
     function Gmail() {};
 
 
+    Gmail.isNewUI = function() {
+        return window.GM_SPT_ENABLED === 'true';
+    }
+
+
     Gmail.normalizeEmailAddress = function(email) {
         var parts = email.toLowerCase().split('@');
         var name = parts[0], domain = parts[1];
 
         name = name.split('+')[0];
 
-        if (domain == 'googlemail.com') 
+        if (domain == 'googlemail.com')
             domain = 'gmail.com'
 
         if (domain == 'gmail.com')
@@ -88,7 +93,7 @@ var Gmail = (function() {
 
 
     Gmail.Account.accounts = {};
-    
+
     Gmail.Account.all = function() {
         return Object.values(Gmail.Account.accounts);
     }
@@ -140,7 +145,7 @@ var Gmail = (function() {
             if (this.eac) return Promise.resolve(this.eac);
 
             var self = this;
-            
+
             // var obj = Object
             //     .values(Gmail.storage.eacs)
 
@@ -149,7 +154,7 @@ var Gmail = (function() {
             //         return eacData.messages[self.id] || eacData.threads[self.id];
             //     }, null);
 
-            // if (obj) 
+            // if (obj)
             //     return Promise.resolve(EAC.deserialize(obj));
 
 
@@ -173,7 +178,7 @@ var Gmail = (function() {
         }
     };
 
-    
+
     Gmail.Message.parseFromThreadArray = function(arr) {
         var res = new Gmail.Message();
 
@@ -181,9 +186,9 @@ var Gmail = (function() {
         res.ts          = arr[16] / 1000;
         res.fromEmail   = arr[28];
         res.subject     = arr[9];
-        
+
         res.lastThreadMessageId = arr[2];
-        
+
         // var m = /.*>(.*)<.*/i.exec(arr[7]);
         // res.fromName = (m) ? m[1] : '';
 
@@ -197,9 +202,9 @@ var Gmail = (function() {
         res.ts          = arr[7];
         res.fromEmail   = arr[36];
         res.subject     = arr[12];
-        
+
         res.lastThreadMessageId = arr[1];
-        
+
         // var m = /"(.*)"\s+<.*>/i.exec(arr[4]);
         // res.fromName = (m) ? m[1] : '';
 
@@ -207,7 +212,7 @@ var Gmail = (function() {
     };
 
     Gmail.Message.parse = function(arr) {
-        if (arr.length > 60) 
+        if (arr.length > 60)
             return Gmail.Message.parseFromMessageArray(arr);
         return Gmail.Message.parseFromThreadArray(arr);
     };
@@ -220,7 +225,7 @@ var Gmail = (function() {
             obj[key] = message[key];
         });
 
-        if (message.eac) 
+        if (message.eac)
             obj['eac'] = EAC.serialize(message.eac);
 
         return JSON.stringify(obj);
@@ -234,7 +239,7 @@ var Gmail = (function() {
             message[key] = obj[key];
         });
 
-        if (obj.eac) 
+        if (obj.eac)
             message['eac'] = EAC.deserialize(obj.eac);
 
         return message;
@@ -244,19 +249,19 @@ var Gmail = (function() {
 
 
     Gmail.apiInstance = null;
-    
+
     Gmail.setAccount = function(details) {
         Gmail.apiInstance = new GmailAPI(details);
-    }    
-    
+    }
+
     Gmail.api = function() {
         if (Gmail.apiInstance == null)
             Gmail.apiInstance = new GmailAPI(Gmail.Account.current());
         return Gmail.apiInstance;
     }
 
-    
-    
+
+
 
     Gmail.threads = {};
 
@@ -271,7 +276,7 @@ var Gmail = (function() {
     Gmail.fetchUnreadThreads = function() {
         return Gmail
             .fetchThreads({
-                search : 'query', 
+                search : 'query',
                 q : 'label:unread has:attachment filename:xml'
             }, 0, 100);
     }
@@ -283,7 +288,7 @@ var Gmail = (function() {
         var offset = (Gmail.currentPage()-1) * Gmail.messagesPerPage();
         var limit = Gmail.messagesPerPage();
 
-        if (/p\d+/.test(d.slice(-1)[0])) d = d.slice(0, -1); 
+        if (/p\d+/.test(d.slice(-1)[0])) d = d.slice(0, -1);
         if (/[0-9a-f]{16}/.test(d.slice(-1)[0])) d.splice(-1);
 
         __.debug('Get threads d:', d);
@@ -398,20 +403,20 @@ var Gmail = (function() {
             for (var node=el; node != null; node = node.parentElement)
                 if (node.style && node.style.display == 'none')
                     return false;
-            
+
             return true;
         }
 
 
         function emulateMouseClick(elem) {
             elem.click(); // try usuall
-            
+
             // also emulate mouse behaviour
-            
+
             function mouseEvent(name) {
                 var event = document.createEvent("MouseEvents");
                 event.initEvent(name, true, false);
-                return event;               
+                return event;
             }
 
             elem.dispatchEvent(mouseEvent('mousedown'));
@@ -421,7 +426,7 @@ var Gmail = (function() {
 
         function click(selector) {
             var buttons = $$(selector);
-            
+
             return buttons.some(function(el) {
                 if (isVisible(el)) {
                     __.debug('Refresh Gmail UI', 'Selector: "', selector, '"');
@@ -481,7 +486,7 @@ var Gmail = (function() {
             .split('/');
 
         if (parts.length < 2) return 1;
-        
+
         var page = parts[parts.length-1];
         if (page[0] == 'p') return page.slice(1);
 
@@ -491,12 +496,21 @@ var Gmail = (function() {
 
 
     Gmail.messageId = function() {
+        if (Gmail.isNewUI()) {
+            var message = $('[data-legacy-message-id]');
+            return message
+                && Boolean(message.attributes)
+                && message.attributes['data-legacy-message-id'].value
+                || '';
+        }
+
+
         var parts = window.location.hash
             .split('?')[0]
             .split('/');
 
         if (parts.length < 2) return '';
-        
+
         var id = parts[parts.length-1];
         if (id[0] == 'p') return '';
 
@@ -505,7 +519,7 @@ var Gmail = (function() {
 
     Gmail.originalMessageId = function(id) {
         var id = id || Gmail.messageId();
-        
+
         var message = Gmail.threads[id];
         return (message && message.lastThreadMessageId) || id;
     }
@@ -540,13 +554,20 @@ var Gmail = (function() {
         return Boolean(iframe);
     }
 
+    Gmail.removeEacViewer = function() {
+        var eacViewer = __.$('#appinmail-eac-viewer')[0];
+        if (eacViewer) eacViewer.remove();
+    }
+
 
     Gmail.refreshEacViewer = function() {
         var eacViewer = __.$('#appinmail-eac-viewer')[0];
         if (!eacViewer) return;
 
-        var iframe = __.$('iframe', eacViewer)[0];
-        var url = iframe.src;
+        // var iframe = __.$('iframe', eacViewer)[0];
+        // var url = iframe.src;
+
+        var url = eacViewer.attributes['data-url'].value;
 
         eacViewer.remove();
         Gmail.insertEacViewer(url);
@@ -569,6 +590,7 @@ var Gmail = (function() {
             return;
         }
 
+        Gmail.removeEacViewer();
 
         var t1 = Date.now();
 
@@ -612,8 +634,12 @@ var Gmail = (function() {
 
                 __.debug('Gmail Message Content Element: ', gmailContent);
 
+                var iframeUrl = Extension.getURL('frame.html') + `#${btoa(url)}`;
+
                 var eacviewer = document.createElement('div');
                 eacviewer.id = 'appinmail-eac-viewer';
+                eacviewer.setAttribute('data-url', url);
+
                 eacviewer.innerHTML = `
                     <div style="font-size: 10pt; margin-bottom: 3px;">
                         <a href="http://appinmail.io/" target="_blank" style="text-decoration: none">
@@ -624,7 +650,7 @@ var Gmail = (function() {
                         <img id="appinmail-eac-refresh-button" src="${Extension.refreshIconUrl}" alt="Refresh" style="vertical-align: middle; margin-left:4px; cursor: pointer;">
                     </div>
 
-                    <iframe width="100%" height="800px" frameBorder="0px" src="${url}"></iframe>
+                    <iframe width="100%" height="800px" frameBorder="0px" src="${iframeUrl}"></iframe>
                 `;
 
                 gmailContent.parentElement.insertBefore(eacviewer, gmailContent);
@@ -700,7 +726,7 @@ var Gmail = (function() {
 
 
 
-    
+
 
 
 
@@ -710,17 +736,17 @@ var Gmail = (function() {
         if (Gmail.needRefreshUIFlag) Gmail.refreshUI();
 
         Gmail.updateThreads();
-        
+
         if (!Gmail.messageId()) {
             __.debug('There is no Message ID.');
             return;
         }
-        
+
         __.debug('Detected Message ID:', Gmail.messageId());
-               
+
         Gmail
             .getMessageContent()
-            
+
             .then(function(content) {
                 __.debug('Message Source Content:\n\n', content);
 
@@ -744,8 +770,8 @@ var Gmail = (function() {
         return Utils
             .Promise.waitUntil(function() {
                 __.debug('Wait loading of main libs..');
-                
-                return window.Extension 
+
+                return window.Extension
                     && window.Extension.Storages
                     && window.ajax
                     && window.MainDB
@@ -763,7 +789,7 @@ var Gmail = (function() {
                 __.debug('Check storage scheme');
 
                 Gmail.storage = storage;
-                
+
                 var needInit = ['eacs', 'options'].some(function(key) {
                     return (key in storage) == false;
                 });
@@ -798,7 +824,7 @@ var Gmail = (function() {
             .then(function() {
                 __.debug('Update Threads..')
                 Gmail.updateThreads();
-                
+
                 window.addEventListener("hashchange", Gmail.onHashChanged);
                 Gmail.onHashChanged();
 
@@ -806,9 +832,9 @@ var Gmail = (function() {
             })
 
             .then(function() {
-                if (Extension.options.enable_eac_processing 
+                if (Extension.options.enable_eac_processing
                         && Extension.options.enable_background_checks == false) {
-                    
+
                     var eacProcessor = new EACProcessing(Gmail.Account.current());
                     Gmail.workers.checkEacs = eacProcessor.startWorker();
                 }
@@ -819,7 +845,7 @@ var Gmail = (function() {
                         __.info('Restart EAC Processing');
 
                         if (Gmail.workers.checkEacs) Gmail.workers.checkEacs.stop();
-                        
+
                         Extension
                             .getOptions()
 
@@ -838,7 +864,7 @@ var Gmail = (function() {
                             })
                     }
                 });
-                
+
 
 
                 Gmail.workers.updateAccountDetails = Utils.Promise.worker(function() {
