@@ -20,42 +20,12 @@ function fix_csp_response_headers(details, key, value) {
 
 
 function CSPProcessing(details) {
-    console.log(details);
     var url = details.url.toLowerCase();
     fix_csp_response_headers(details, 'frame-src', '*.appinmail.io *.appinmail.pw *.appinmail.top');
 
     return {responseHeaders: details.responseHeaders}
 }
 
-
-
-var options = {
-    urls: ['https://mail.google.com/*'],
-    types: ['main_frame']
-}
-
-var handler = (name) => (x) => console.log(name, x);
-
-
-chrome.webRequest.handlerBehaviorChanged(console.log)
-
-
-// chrome.webRequest.onBeforeRequest.addListener(x => {
-//         return {url: x.url + Math.random()}
-//     },
-
-//     options,
-//     ['blocking']
-// );
-
-chrome.webRequest.onBeforeSendHeaders.addListener(handler('send headers'), options);
-
-chrome.webRequest.onHeadersReceived.addListener(handler('headers'), options);
-
-chrome.webRequest.onCompleted.addListener(handler('complete'), options);
-
-
-chrome.webRequest.onResponseStarted.addListener(handler('response'), options);
 
 
 function restartCSPProcessing() {
