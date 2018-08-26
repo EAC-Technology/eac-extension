@@ -546,12 +546,13 @@ var Gmail = (function() {
 
 
     Gmail.isEacViewerInserted = function(url) {
-        var iframe = __.$('#appinmail-eac-viewer iframe')[0];
+        var node = __.$('#appinmail-eac-viewer')[0];
 
         if (url)
-            return Boolean(iframe && iframe.src === url);
+            return Boolean(node && node.attributes['data-url'] && node.attributes['data-url'].value === url);
 
-        return Boolean(iframe);
+
+        return Boolean(node);
     }
 
     Gmail.removeEacViewer = function() {
