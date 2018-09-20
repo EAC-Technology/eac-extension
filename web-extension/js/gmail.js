@@ -725,10 +725,7 @@ var Gmail = (function() {
 
     Gmail.skipThreads = {};
 
-
-
-
-
+    Gmail.lastMessageId = null;
 
 
     Gmail.onHashChanged = function() {
@@ -738,28 +735,46 @@ var Gmail = (function() {
 
         Gmail.updateThreads();
 
-        if (!Gmail.messageId()) {
+        var hashParts = window.location.hash.slice(1).split('/');
+        var isMessageOpened = /[A-Za-z0-9]{20,}/.test(hashParts.slice(-1)[0] || '');
+
+        if (!isMessageOpened) {
             __.debug('There is no Message ID.');
+            Gmail.lastMessageId = null;
             return;
         }
 
-        __.debug('Detected Message ID:', Gmail.messageId());
+        var t1 = Date.now();
 
-        Gmail
-            .getMessageContent()
+        Utils.Promise.waitUntil(() => {
+            var messageId = Gmail.messageId();
+            if (!Boolean(messageId)) return false;
 
-            .then(function(content) {
-                __.debug('Message Source Content:\n\n', content);
+            if (Gmail.lastMessageId !== messageId) {
+                Gmail.lastMessageId = messageId;
+                return true;
+            }
 
-                var eac = EAC.parse(content);
-                if (!eac) {
-                    __.debug('It is not EAC message!');
-                    return;
-                }
+            if (Date.now() - t1 > 10000)
+                return true;
+        })
 
-                __.info('EAC content detected!');
-                return Gmail.runEAC(eac);
-            });
+        .then(() => __.debug('Detected Message ID:', Gmail.messageId()))
+
+        .then(() => Gmail.getMessageContent())
+
+        .then(function(content) {
+            __.debug('Message Source Content:\n\n', content);
+
+            var eac = EAC.parse(content);
+            if (!eac) {
+                __.debug('It is not EAC message!');
+                return;
+            }
+
+            __.info('EAC content detected!');
+            return Gmail.runEAC(eac);
+        })
     }
 
 
@@ -898,4 +913,8 @@ var Gmail = (function() {
 
 })();
 
+
+
+// Decoder for new formad of Message/Thread IDs:
+// https://gist.github.com/danrouse/52212f0de2fbfe33cfc56583f20ccb74
 
